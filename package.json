@@ -1,0 +1,76 @@
+{
+  "name": "moodboard-app",
+  "private": true,
+  "version": "2.8.5",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "electron:dev": "concurrently \"vite --port 3005\" \"wait-on http://localhost:3005 && cross-env NODE_ENV=development electron .\"",
+    "electron:build": "cross-env CSC_IDENTITY_AUTO_DISCOVERY=false vite build && electron-builder --win --config.win.signAndEditExecutable=false",
+    "electron:build:portable": "cross-env CSC_IDENTITY_AUTO_DISCOVERY=false vite build && electron-builder --win portable --config.win.signAndEditExecutable=false",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "html2canvas": "^1.4.1",
+    "lucide-react": "^0.400.0",
+    "nanoid": "^5.0.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zustand": "^4.5.2"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "concurrently": "^9.1.0",
+    "cross-env": "^7.0.3",
+    "electron": "^28.3.3",
+    "electron-builder": "^25.1.8",
+    "vite": "^5.4.2",
+    "vitest": "^4.1.9",
+    "wait-on": "^8.0.1"
+  },
+  "build": {
+    "appId": "com.moodboard.design-spec-inspiration",
+    "productName": "ID Aura",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "public/assets/icon.ico",
+      "sign": null,
+      "artifactName": "ID-Aura-${version}-Setup.${ext}"
+    },
+    "nsis": {
+      "include": "build/installer.nsh",
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "perMachine": false,
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": true
+    },
+    "fileAssociations": [
+      {
+        "ext": ".moodboard",
+        "name": "ID Aura Moodboard",
+        "description": "ID Aura 灵感图版项目文件",
+        "role": "Editor",
+        "isPackage": false
+      }
+    ]
+  }
+}

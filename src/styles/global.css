@@ -1,0 +1,406 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  /* ===== Surface Elevation System ===== */
+  --surface-base: #0d0d0d;
+  --surface-raised: #161616;
+  --surface-overlay: #1e1e1e;
+  --surface-elevated: #282828;
+
+  /* ===== Glass ===== */
+  --glass-bg: rgba(18, 18, 24, 0.70);
+  --glass-border: rgba(255, 255, 255, 0.06);
+  --glass-blur: blur(16px) saturate(120%);
+  --glass-highlight: rgba(255,255,255,0.08);
+
+  /* ===== Accent ===== */
+  --accent-default: #6ea8fe;
+  --accent-hover: #9dc5fe;
+  --accent-muted: rgba(110,168,254,0.14);
+  --accent-glow: rgba(110, 168, 254, 0.25);
+
+  /* ===== Semantic ===== */
+  --semantic-success: #56d48c;
+  --semantic-warning: #e5b042;
+  --semantic-danger: #f06548;
+  --semantic-info: #6ea8fe;
+
+  /* ===== Text ===== */
+  --text-primary: #f0edff;
+  --text-secondary: #b3adcc;
+  --text-tertiary: #787390;
+  --text-inverse: #0d0d0d;
+
+  /* ===== Border ===== */
+  --border-default: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.12);
+  --border-accent: rgba(110, 168, 254, 0.35);
+
+  /* ===== Elevation ===== */
+  --elevation-1: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --elevation-2: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --elevation-3: 0 8px 24px rgba(0, 0, 0, 0.6);
+  --glow-accent: 0 0 0 2px var(--accent-glow);
+  --glow-card-hover: 0 0 20px rgba(110, 168, 254, 0.08);
+
+  /* ===== Typography ===== */
+  --font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --text-xs: 11px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-md: 15px;
+  --text-lg: 18px;
+  --text-xl: 24px;
+
+  /* ===== Spacing ===== */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  /* ===== Radius ===== */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  /* ===== Icon ===== */
+  --icon-sm: 14px;
+  --icon-md: 18px;
+  --icon-lg: 22px;
+  --icon-xl: 28px;
+
+  /* ===== New Liquid Glass Tokens ===== */
+  --accent-purple: #a78bfa;
+  --accent-cyan: #67e8f9;
+  --accent-gradient: linear-gradient(135deg, #6ea8fe, #a78bfa);
+  --accent-muted-purple: rgba(167, 139, 250, 0.12);
+
+  --glass-blur-heavy: blur(24px) saturate(150%);
+  --glass-blur-light: blur(8px) saturate(100%);
+  --glass-bg-strong: rgba(18, 18, 24, 0.82);
+  --glass-bg-medium: rgba(18, 18, 24, 0.70);
+  --glass-bg-light: rgba(18, 18, 24, 0.55);
+  --glass-highlight-blue: rgba(110, 168, 254, 0.06);
+  --glass-highlight-purple: rgba(167, 139, 250, 0.04);
+  --glass-highlight-strong: rgba(255, 255, 255, 0.10);
+  --glass-inner-glow: inset 0 1px 0 rgba(255,255,255,0.06);
+  --glass-inner-glow-accent: inset 0 0 30px rgba(110,168,254,0.04);
+
+  --shadow-brand: 0 8px 32px rgba(80, 60, 160, 0.18);
+  --shadow-glass: 0 4px 24px rgba(0, 0, 0, 0.4);
+
+  --liquid-ease: cubic-bezier(0.4, 0, 0.2, 1.3);
+  --liquid-ease-out: cubic-bezier(0.2, 0.8, 0.4, 1.0);
+
+  --aura-blue: radial-gradient(ellipse 600px 400px at 20% 50%, rgba(110,168,254,0.10), transparent);
+  --aura-purple: radial-gradient(ellipse 500px 350px at 80% 40%, rgba(167,139,250,0.08), transparent);
+  --aura-cyan: radial-gradient(ellipse 300px 200px at 60% 80%, rgba(103,232,249,0.05), transparent);
+  --pulse-ring: 0 0 0 0 rgba(110,168,254,0.4);
+
+  /* ===== Old Variable Aliases (backward compatible) ===== */
+  --bg: var(--surface-base);
+  --bg-panel: var(--surface-raised);
+  --bg-card: var(--surface-overlay);
+  --bg-card-hover: var(--surface-elevated);
+  --text: var(--text-primary);
+  --border: var(--border-default);
+  --accent: var(--accent-default);
+  --danger: var(--semantic-danger);
+  --success: var(--semantic-success);
+  --warning: var(--semantic-warning);
+  --priority-high: var(--semantic-danger);
+  --priority-medium: var(--semantic-warning);
+  --priority-low: var(--accent-default);
+  --shadow: var(--elevation-2);
+  --radius: var(--radius-md);
+  --radius-sm: var(--radius-xs);
+
+  /* ===== Soft Card Tokens (v2.8) ===== */
+  --surface-card: #1e1e24;
+  --surface-card-hover: #23232a;
+  --surface-card-active: #2a2a35;
+
+  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.2);
+  --shadow-card-hover: 0 8px 32px rgba(0, 0, 0, 0.25);
+  --shadow-panel: 0 8px 32px rgba(0, 0, 0, 0.25);
+
+  --radius-panel: 16px;
+  --radius-card: 12px;
+  --radius-pill: 9999px;
+
+  --border-gradient: linear-gradient(135deg, #6b8cff, #a855f7);
+
+  --ease-out-smooth: cubic-bezier(0.2, 0.8, 0.4, 1.0);
+  --ease-out-snap: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* 间距（已有 token 基础上统一使用） */
+  --gap-panel: 12px;
+  --gap-card: 16px;
+  --padding-card: 16px;
+}
+
+/* ===== Body ===== */
+body {
+  font-family: var(--font-family);
+  background: var(--surface-base);
+  color: var(--text-primary);
+  overflow: hidden;
+  height: 100vh;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  height: 100vh;
+}
+
+/* ===== Scrollbar ===== */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* ===== Glass CSS Classes ===== */
+.glass-strong {
+  background: var(--glass-bg-strong);
+  backdrop-filter: var(--glass-blur-heavy);
+  -webkit-backdrop-filter: var(--glass-blur-heavy);
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: var(--shadow-glass), var(--elevation-3, 0 8px 24px rgba(0,0,0,0.6));
+}
+
+.glass-medium {
+  background: var(--glass-bg-medium);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid rgba(255,255,255,0.06);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+
+.glass-light {
+  background: var(--glass-bg-light);
+  backdrop-filter: var(--glass-blur-light);
+  -webkit-backdrop-filter: var(--glass-blur-light);
+  border: 1px solid rgba(255,255,255,0.04);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+/* ===== Iridescent Border Utilities ===== */
+
+/* 全边框虹彩 */
+.iridescent-border {
+  position: relative;
+  border: none;
+}
+.iridescent-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(110,168,254,0.35) 0%, rgba(167,139,250,0.35) 50%, rgba(103,232,249,0.20) 100%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 0;
+}
+.iridescent-border > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* 底部虹彩线 */
+.iridescent-border-bottom {
+  position: relative;
+}
+.iridescent-border-bottom::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent 0%, rgba(110,168,254,0.35) 20%, rgba(167,139,250,0.35) 50%, rgba(103,232,249,0.20) 80%, transparent 100%);
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* 左侧虹彩线 */
+.iridescent-border-left {
+  position: relative;
+}
+.iridescent-border-left::after {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 1px;
+  background: linear-gradient(180deg,
+    rgba(110,168,254,0.35) 0%, rgba(167,139,250,0.35) 50%, rgba(103,232,249,0.15) 100%);
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* ===== Canvas Background ===== */
+.canvas-bg {
+  background-color: var(--canvas-bg-color, var(--surface-base));
+  position: relative;
+}
+
+.canvas-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  /* Subtle vignette */
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, 0.4) 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.canvas-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  /* Micro-noise overlay */
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ===== Animations ===== */
+@keyframes menuFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes menuFadeOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.ai-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 14px;
+  background: var(--accent-default);
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  animation: blink 1s step-end infinite;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes condensationIn {
+    0% { opacity: 0; transform: scale(0.96); filter: blur(16px); }
+    60% { opacity: 1; transform: scale(1.01); filter: blur(2px); }
+    100% { opacity: 1; transform: scale(1); filter: blur(0); }
+  }
+
+  @keyframes pulseRing {
+    0% { box-shadow: 0 0 0 0 rgba(110,168,254,0.4); }
+    70% { box-shadow: 0 0 0 20px rgba(110,168,254,0); }
+    100% { box-shadow: 0 0 0 0 rgba(110,168,254,0); }
+  }
+
+  @keyframes logoReveal {
+    0% { opacity: 0; filter: blur(8px); transform: scale(0.95); }
+    100% { opacity: 1; filter: blur(0); transform: scale(1); }
+  }
+}
+
+/* ===== Global Transition Utilities ===== */
+.transition-fast {
+  transition: all 150ms ease-out;
+}
+
+.transition-normal {
+  transition: all 250ms ease-out;
+}
+
+.transition-slow {
+  transition: all 350ms ease-out;
+}
+
+/* ===== Moodboard Canvas ===== */
+.moodboard-canvas {
+  position: relative;
+}
+
+/* Selected card transition */
+.card-selected {
+  transition: outline-color 0.15s, box-shadow 0.15s;
+}
+
+/* ===== Focus visible ===== */
+*:focus-visible {
+  outline: 2px solid var(--accent-default);
+  outline-offset: 2px;
+}
+
+/* ===== Global Aura Background ===== */
+/* Removed per v2.8.4: keep canvas background clean and let panels float as tiles. */

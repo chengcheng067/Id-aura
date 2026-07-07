@@ -1,0 +1,56 @@
+sequenceDiagram
+    participant User as 用户
+    participant SettingsModal as SettingsModal (AiTab)
+    participant settingsSlice as settingsSlice (Zustand)
+    participant aiClient as aiClient.js
+    participant API as AI API (用户配置)
+
+    %% ── 配置流程 ──
+    rect rgb(20, 40, 60)
+        Note over User,API: 配置流程
+        User->>SettingsModal: 打开设置 → AI 标签页
+        SettingsModal->>settingsSlice: settings.ai (读取当前配置)
+        settingsSlice-->>SettingsModal: apiEndpoint, apiKey, modelName
+
+        User->>SettingsModal: 填入 API 配置
+        User->>SettingsModal: 点击「测试连接」
+        SettingsModal->>aiClient: testConnection(config)
+        aiClient->>API: POST /chat/completions (max_tokens:1)
+        alt 成功
+            API-->>aiClient: 200 OK
+            aiClient-->>SettingsModal: { success: true, latency: 320ms }
+            SettingsModal->>settingsSlice: updateAiSettings({ lastTested: Date.now() })
+        else 失败
+            API-->>aiClient: 401/404/429/超时
+            aiClient-->>SettingsModal: { success: false, message: "错误详情" }
+        end
+        SettingsModal->>settingsSlice: updateAiSettings(config)
+        settingsSlice->>localStorage: writeSettings()
+    end
+
+    %% ── 对话流程 ──
+    rect rgb(30, 20, 40)
+        Note over User,API: 对话流程
+        User->>SidePanel: 选中品类（如：火锅店）
+        User->>AiChatPanel: 展开 AI 面板
+        User->>AiChatPanel: 选择模板 / 输入问题
+        
+        AiChatPanel->>chatSlice: addMessage("user", 问题)
+        AiChatPanel->>chatSlice: setStreaming(true)
+        AiChatPanel->>aiClient: buildSpecContext(specData, "火锅店")
+        
+        AiChatPanel->>aiClient: sendMessage(config, messages, callbacks)
+        aiClient->>API: POST /chat/completions (stream: true)
+        
+        loop 流式逐块返回
+            API-->>aiClient: SSE data chunk
+            aiClient-->>AiChatPanel: onChunk(text)
+            AiChatPanel->>chatSlice: updateLastMessage(text)
+            AiChatPanel-->>User: 逐字显示
+        end
+        
+        API-->>aiClient: data: [DONE]
+        aiClient-->>AiChatPanel: onDone(fullText)
+        AiChatPanel->>chatSlice: finalizeLastMessage()
+        AiChatPanel->>chatSlice: trimMessages()
+    end

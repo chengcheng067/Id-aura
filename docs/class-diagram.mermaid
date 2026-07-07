@@ -1,0 +1,86 @@
+classDiagram
+    %% ─── settingsSlice.aiConfig ───
+    class AiConfig {
+        +string apiEndpoint
+        +string apiKey
+        +string modelName
+        +string mode
+        +number|null lastTested
+    }
+
+    %% ─── chatSlice ───
+    class PromptTemplate {
+        +string id
+        +string name
+        +string description
+        +string systemPrompt
+        +string mode
+    }
+
+    class ChatMessage {
+        +string id
+        +string role
+        +string content
+        +number timestamp
+        +boolean isStreaming
+    }
+
+    class ChatState {
+        +ChatMessage[] messages
+        +boolean isOpen
+        +boolean isStreaming
+        +string|null selectedTemplate
+        +PromptTemplate[] templates
+        +AbortController|null abortController
+        +string|null currentCategoryId
+    }
+
+    class ChatActions {
+        +toggleChatPanel() void
+        +addMessage(role, content, isStreaming) void
+        +updateLastMessage(content) void
+        +finalizeLastMessage() void
+        +clearMessages() void
+        +setSelectedTemplate(id) void
+        +setMode(mode) void
+        +setStreaming(val) void
+        +setAbortController(controller) void
+        +setCurrentCategoryId(id) void
+        +trimMessages() void
+    }
+
+    %% ─── aiClient.js ───
+    class AiClientConfig {
+        +string apiEndpoint
+        +string apiKey
+        +string modelName
+    }
+
+    class AiRequest {
+        +object[] messages
+        +boolean stream
+        +AbortSignal signal
+    }
+
+    class AiClient {
+        +testConnection(config) Promise~TestResult~
+        +sendMessage(config, request, callbacks) void
+        +buildSpecContext(specData, categoryName) string
+    }
+
+    class TestResult {
+        +boolean success
+        +string message
+        +number latency
+    }
+
+    %% ─── Relationships ───
+    AiConfig "1" -- "1" settingsSlice : 嵌套在 settings.ai 字段
+    ChatState "1" -- "0..*" ChatMessage : 包含消息列表
+    ChatState "1" -- "0..*" PromptTemplate : 包含模板列表
+    ChatState ..> AiClient : 使用 aiClient.sendMessage()
+    AiClient ..> AiClientConfig : 接收配置
+    AiClient ..> AiRequest : 接收请求参数
+    AiClient ..> TestResult : testConnection() 返回
+    ChatActions --|> ChatState : 操作方法属于 ChatState
+    settingsSlice --|> AiConfig : updateAiSettings() 管理
