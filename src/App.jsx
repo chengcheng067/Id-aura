@@ -90,6 +90,10 @@ export default function App() {
     // Decrypt API key if stored encrypted (v2.7.8 safeStorage)
     store.decryptStoredApiKey()
 
+    // P0: load spec library (built-in fallback → cache → remote).
+    // Fire-and-forget; UI refreshes via specVersion bump when data arrives.
+    store.refreshSpecs()
+
     // ════════════════════════════════════════════════════════════
     // Preload-injected .moodboard content (via contextBridge)
     // Main process reads file BEFORE React mounts and stores it.

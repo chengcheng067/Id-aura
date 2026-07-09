@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Bot, X, Paperclip, Link, Code, Send, Info } from 'lucide-react'
+import { Bot, X, Paperclip, Link, Code, Send, Info, LayoutGrid, ChevronRight } from 'lucide-react'
 import useStore from '../store/useStore'
 import { getSpecByCategory, getCategoryList } from '../data/specs'
 import {
@@ -44,6 +44,7 @@ export default function FloatingAiAssistant() {
   const isAiPanelOpen = useStore((s) => s.isAiPanelOpen)
 
   const [isChatOpen, setIsChatOpen] = useState(false)
+  const [isTemplateOpen, setIsTemplateOpen] = useState(false)
   const [message, setMessage] = useState('')
   const [charCount, setCharCount] = useState(0)
 
@@ -64,6 +65,7 @@ export default function FloatingAiAssistant() {
   const addCard = useStore((s) => s.addCard)
 
   const chatRef = useRef(null)
+  const templateRef = useRef(null)
   const messagesEndRef = useRef(null)
   const abortControllerRef = useRef(null)
   const fileInputRef = useRef(null)
@@ -83,13 +85,43 @@ export default function FloatingAiAssistant() {
     if (!isChatOpen) return
     const handleClickOutside = (e) => {
       if (chatRef.current && !chatRef.current.contains(e.target)) {
-        if (!e.target.closest('.glow-ai-btn')) {
+        if (!e.target.closest('.glow-ai-btn') && !e.target.closest('.template-btn')) {
           setIsChatOpen(false)
+          setIsTemplateOpen(false)
         }
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [isChatOpen])
+
+  // Close template popover on outside click
+  useEffect(() => {
+    if (!isTemplateOpen) return
+    const handleClickOutside = (e) => {
+      if (templateRef.current && !templateRef.current.contains(e.target) && !e.target.closest('.template-btn')) {
+        setIsTemplateOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [isTemplateOpen])
+
+  // Global Shift+Enter shortcut to open AI chat
+  useEffect(() => {
+    const handleGlobalKeyDown = (e) => {
+      if (e.key !== 'Enter' || !e.shiftKey) return
+      // If chat already open, let textarea handle Shift+Enter for newline
+      if (isChatOpen) return
+      // Skip if user is typing in another input
+      const tag = e.target?.tagName?.toLowerCase()
+      const isInput = tag === 'textarea' || tag === 'input' || tag === 'select' || e.target?.isContentEditable
+      if (isInput) return
+      e.preventDefault()
+      setIsChatOpen(true)
+    }
+    document.addEventListener('keydown', handleGlobalKeyDown)
+    return () => document.removeEventListener('keydown', handleGlobalKeyDown)
   }, [isChatOpen])
 
   // ── Spec context for AI ───────────────────────────
@@ -207,6 +239,13 @@ export default function FloatingAiAssistant() {
       insertTextAtCursor(`[参考图：${file.name}] `)
     }
     e.target.value = ''
+  }
+
+  /** Select a prompt template and set the corresponding mode. */
+  const handleSelectTemplate = (tpl) => {
+    selectTemplate(tpl.id)
+    setMode(tpl.mode)
+    setIsTemplateOpen(false)
   }
 
   const handleToggle = () => {
@@ -486,9 +525,13 @@ export default function FloatingAiAssistant() {
                 <AttachBtn icon={<Link size={15} />} label="插入链接" hoverColor="#ef4444" rotate="rotate-6" onClick={() => insertTextAtCursor('[链接：]')} />
                 <AttachBtn icon={<Code size={15} />} label="插入代码块" hoverColor="#22c55e" rotate="rotate-3" onClick={() => insertTextAtCursor('\n```\n\n```\n')} />
                 <AttachBtn
-                  icon={<svg viewBox="0 0 24 24" fill="currentColor" width={15} height={15}><path d="M15.852 8.981h-4.588V0h4.588c2.476 0 4.49 2.014 4.49 4.49s-2.014 4.491-4.49 4.491zM12.735 7.51h3.117c1.665 0 3.019-1.355 3.019-3.019s-1.354-3.019-3.019-3.019h-3.117V7.51zm0 1.471H8.148c-2.476 0-4.49-2.015-4.49-4.49S5.672 0 8.148 0h4.588v8.981zm-4.587-7.51c-1.665 0-3.019 1.355-3.019 3.019s1.354 3.02 3.019 3.02h3.117V1.471H8.148zm4.587 15.019H8.148c-2.476 0-4.49-2.014-4.49-4.49s2.014-4.49 4.49-4.49h4.588v8zM8.148 8.981c-1.665 0-3.019 1.355-3.019 3.019s1.355 3.019 3.019 3.019h3.117v-6.038H8.148zm7.704 0c-2.476 0-4.49 2.015-4.49 4.49s2.014 4.49 4.49 4.49 4.49-2.015 4.49-4.49-2.014-4.49-4.49-4.49zm0 7.509c-1.665 0-3.019-1.355-3.019-3.019s1.355-3.019 3.019-3.019 3.019 1.354 3.019 3.019-1.354 3.019-3.019 3.019z"/></svg>}
-                  label="Figma 分析" hoverColor="#a855f7" rotate="-rotate-6"
-                  onClick={() => insertTextAtCursor('请分析这个 Figma 设计稿：[Figma：]')}
+                  className="template-btn"
+                  icon={<LayoutGrid size={15} />}
+                  label="模板库"
+                  hoverColor="#a855f7"
+                  rotate="-rotate-6"
+                  active={isTemplateOpen}
+                  onClick={() => setIsTemplateOpen((v) => !v)}
                 />
               </div>
 
@@ -560,6 +603,63 @@ export default function FloatingAiAssistant() {
               background: 'linear-gradient(135deg, rgba(239,68,68,0.03), transparent, rgba(147,51,234,0.03))',
             }} />
           </div>
+
+          {/* Template selector popover */}
+          {isTemplateOpen && (
+            <div
+              ref={templateRef}
+              style={{
+                position: 'absolute',
+                bottom: 72,
+                right: 0,
+                width: Math.min(280, window.innerWidth - 80),
+                borderRadius: 16,
+                background: 'linear-gradient(135deg, rgba(39,39,42,0.95), rgba(24,24,27,0.98))',
+                border: '1px solid rgba(255,255,255,0.08)',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04) inset',
+                backdropFilter: 'blur(28px) saturate(150%)',
+                WebkitBackdropFilter: 'blur(28px) saturate(150%)',
+                overflow: 'hidden',
+                zIndex: 101,
+                animation: 'chatPopIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
+                transformOrigin: 'bottom right',
+              }}
+            >
+              <div style={{
+                padding: '10px 12px',
+                borderBottom: '1px solid rgba(255,255,255,0.06)',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>
+                  选择提示模板
+                </span>
+                <button onClick={() => setIsTemplateOpen(false)} style={{
+                  width: 22, height: 22, borderRadius: 6, border: 'none',
+                  background: 'transparent', color: 'rgba(255,255,255,0.35)',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
+                }}>
+                  <X size={12} />
+                </button>
+              </div>
+              <div style={{ maxHeight: 260, overflowY: 'auto', padding: '6px' }}>
+                <TemplateItem
+                  name="自由提问"
+                  description="不使用模板，直接输入"
+                  active={!selectedTemplate}
+                  onClick={() => { selectTemplate(null); setIsTemplateOpen(false); }}
+                />
+                {templates.map((tpl) => (
+                  <TemplateItem
+                    key={tpl.id}
+                    name={tpl.name}
+                    description={tpl.description}
+                    active={selectedTemplate === tpl.id}
+                    onClick={() => handleSelectTemplate(tpl)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -593,11 +693,12 @@ export default function FloatingAiAssistant() {
 }
 
 /** Small attachment toolbar button */
-function AttachBtn({ icon, label, hoverColor, rotate, onClick }) {
+function AttachBtn({ icon, label, hoverColor, rotate, onClick, active, className }) {
   return (
-    <button title={label} onClick={onClick} className="attach-btn" style={{
+    <button title={label} onClick={onClick} className={className} style={{
       width: 30, height: 30, borderRadius: 7, border: 'none',
-      background: 'transparent', color: 'rgba(255,255,255,0.35)',
+      background: active ? 'rgba(255,255,255,0.10)' : 'transparent',
+      color: active ? '#a78bfa' : 'rgba(255,255,255,0.35)',
       cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
       transition: 'all 250ms cubic-bezier(0.175, 0.885, 0.32, 1.275)',
       position: 'relative',
@@ -608,12 +709,41 @@ function AttachBtn({ icon, label, hoverColor, rotate, onClick }) {
         e.currentTarget.style.transform = `scale(1.1) ${rotate}`
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.color = 'rgba(255,255,255,0.35)'
-        e.currentTarget.style.background = 'transparent'
+        e.currentTarget.style.color = active ? '#a78bfa' : 'rgba(255,255,255,0.35)'
+        e.currentTarget.style.background = active ? 'rgba(255,255,255,0.10)' : 'transparent'
         e.currentTarget.style.transform = 'scale(1) rotate(0)'
       }}
     >
       {icon}
+    </button>
+  )
+}
+
+/** Template list item */
+function TemplateItem({ name, description, active, onClick }) {
+  return (
+    <button onClick={onClick} style={{
+      width: '100%', textAlign: 'left',
+      padding: '8px 10px', borderRadius: 10, border: 'none',
+      background: active ? 'rgba(139,92,246,0.14)' : 'transparent',
+      cursor: 'pointer', marginBottom: 4,
+      transition: 'all 150ms ease-out',
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    }}
+      onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+      onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = 'transparent' }}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+        <span style={{
+          fontSize: 12.5, fontWeight: 600,
+          color: active ? '#a78bfa' : 'rgba(255,255,255,0.85)',
+        }}>{name}</span>
+        <span style={{
+          fontSize: 11, color: 'rgba(255,255,255,0.35)',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>{description}</span>
+      </div>
+      {active && <ChevronRight size={14} color="#a78bfa" />}
     </button>
   )
 }

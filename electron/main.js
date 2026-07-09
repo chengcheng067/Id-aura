@@ -7,6 +7,66 @@ let fileToOpen = null
 let injectedMoodboard = null
 let forceQuitting = false
 let closeDialogPending = false
+let miniWindow = null
+
+// ─── Mini reference window (simplified PureRef-style floating view) ──
+// A small always-on-top window that displays a live snapshot of the board.
+// It receives PNG dataURLs via the 'update' IPC channel and can restore /
+// close the main window. nodeIntegration is enabled for this trusted,
+// local-only utility window so its inline script can use require('electron').
+const MINI_HTML = `<!DOCTYPE html><html><head><meta charset="utf-8">
+<style>
+  html,body{margin:0;height:100%;background:#161616;overflow:hidden;font-family:-apple-system,Segoe UI,sans-serif}
+  #preview{width:100%;height:calc(100% - 30px);object-fit:contain;display:block;background:#161616}
+  .bar{position:fixed;bottom:0;left:0;right:0;height:30px;display:flex;background:#232323}
+  .bar button{flex:1;border:none;background:#2d2d2d;color:#ddd;font-size:12px;cursor:pointer;outline:none}
+  .bar button:hover{background:#3a3a3a}
+</style></head>
+<body>
+  <img id="preview" src="">
+  <div class="bar">
+    <button onclick="window.__mini.restore()">还原主窗口</button>
+    <button onclick="window.__mini.close()">关闭小窗</button>
+  </div>
+  <script>
+    const { ipcRenderer } = require('electron');
+    window.__mini = {
+      restore: () => ipcRenderer.send('mini-window:restore'),
+      close: () => ipcRenderer.send('mini-window:close'),
+    };
+    ipcRenderer.on('update', (_e, dataUrl) => {
+      const img = document.getElementById('preview');
+      if (img) img.src = dataUrl;
+    });
+  </script>
+</body></html>`
+
+function createMiniWindow() {
+  if (miniWindow && !miniWindow.isDestroyed()) {
+    miniWindow.focus()
+    return
+  }
+  miniWindow = new BrowserWindow({
+    width: 380,
+    height: 300,
+    minWidth: 200,
+    minHeight: 160,
+    alwaysOnTop: true,
+    title: 'ID Aura · 参考小窗',
+    backgroundColor: '#161616',
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false,
+    },
+  })
+  miniWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(MINI_HTML))
+  miniWindow.on('closed', () => {
+    miniWindow = null
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('mini-window:closed')
+    }
+  })
+}
 
 // ─── Helper: executeJavaScript with timeout ───────────────────
 // Wraps webContents.executeJavaScript with a timeout to prevent
@@ -366,4 +426,61 @@ ipcMain.handle('safe-decrypt', (_event, encryptedBase64) => {
 
 ipcMain.handle('safe-is-available', () => {
   return safeStorage.isEncryptionAvailable()
+})
+
+// ── Spec library cache (P0 规范库外置化) ──────────────────────────────────
+// Persist the latest remote spec bundle into userData so the library works
+// offline after the first successful fetch.
+ipcMain.handle('spec:getCache', async () => {
+  try {
+    const p = path.join(app.getPath('userData'), 'spec-cache.json')
+    if (!fs.existsSync(p)) return null
+    return JSON.parse(fs.readFileSync(p, 'utf8'))
+  } catch (_) {
+    return null
+  }
+})
+
+ipcMain.handle('spec:saveCache', async (_event, payload) => {
+  try {
+    const p = path.join(app.getPath('userData'), 'spec-cache.json')
+    fs.writeFileSync(p, JSON.stringify(payload), 'utf8')
+    return { success: true }
+  } catch (_) {
+    return { success: false }
+  }
+})
+
+// --- IPC: Mini reference window ---
+ipcMain.handle('mini-window:open', () => {
+  try {
+    createMiniWindow()
+    return { success: true }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+})
+
+ipcMain.handle('mini-window:update', (_event, dataUrl) => {
+  if (miniWindow && !miniWindow.isDestroyed()) {
+    try {
+      miniWindow.webContents.send('update', dataUrl)
+    } catch (_) { /* window gone */ }
+  }
+  return { success: true }
+})
+
+ipcMain.on('mini-window:restore', () => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    if (mainWindow.isMinimized()) mainWindow.restore()
+    mainWindow.show()
+    mainWindow.focus()
+  }
+})
+
+ipcMain.on('mini-window:close', () => {
+  if (miniWindow && !miniWindow.isDestroyed()) {
+    miniWindow.close()
+  }
+  miniWindow = null
 })

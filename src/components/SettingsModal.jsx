@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { X, Palette, FileText, Monitor, Keyboard, Heart, Bot, LayoutTemplate } from 'lucide-react'
+import { X, Palette, FileText, Monitor, Keyboard, Heart, Bot, LayoutTemplate, Database } from 'lucide-react'
 import useStore from '../store/useStore'
 import { testConnection } from '../utils/aiClient'
 import packageJson from '../../package.json'
@@ -12,6 +12,7 @@ const TABS = [
   { key: 'shortcuts', label: '快捷键', icon: Keyboard },
   { key: 'toolbar', label: '工具栏', icon: LayoutTemplate },
   { key: 'ai', label: 'AI 助手', icon: Bot },
+  { key: 'spec', label: '规范', icon: Database },
   { key: 'about', label: '关于', icon: Heart },
 ]
 
@@ -535,6 +536,89 @@ function AboutTab() {
   )
 }
 
+// ─── Spec Tab (P0 规范库外置化) ───────────────────────────
+
+function SpecTab() {
+  const specSource = useStore((s) => s.settings.spec.source)
+  const updateSpecSource = useStore((s) => s.updateSpecSource)
+  const refreshSpecs = useStore((s) => s.refreshSpecs)
+  const specStatus = useStore((s) => s.specStatus)
+  const [checking, setChecking] = useState(false)
+
+  const handleCheck = async () => {
+    setChecking(true)
+    try {
+      await refreshSpecs()
+    } finally {
+      setChecking(false)
+    }
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', lineHeight: 1.6 }}>
+        规范库已外置化：应用启动时自动从「规范源」拉取最新规范，无需重新安装即可更新。
+        若网络不可用，将使用内置兜底数据，规范库不会变空。
+      </div>
+
+      {/* Current status */}
+      <div
+        className="glass-medium"
+        style={{ borderRadius: 'var(--radius-card)', padding: '10px 12px', background: 'var(--surface-card)' }}
+      >
+        <div style={labelS}>当前生效规范</div>
+        <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-primary)' }}>
+          版本 v{specStatus.version} · 来源：{specStatus.source}
+        </div>
+      </div>
+
+      {/* Source URL */}
+      <div>
+        <label style={labelS}>规范源地址</label>
+        <input
+          value={specSource}
+          onChange={(e) => updateSpecSource(e.target.value)}
+          placeholder="https://.../spec.json"
+          style={{
+            width: '100%',
+            padding: '8px 10px',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border-default)',
+            background: 'var(--surface-overlay)',
+            color: 'var(--text-primary)',
+            fontSize: 'var(--text-sm)',
+            outline: 'none',
+            fontFamily: 'var(--font-family)',
+          }}
+        />
+        <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', marginTop: 6, lineHeight: 1.5 }}>
+          支持任意可访问的 spec.json（jsDelivr / GitHub raw / 自建 CDN）。默认源指向项目仓库，留空也行。
+        </p>
+      </div>
+
+      <button
+        onClick={handleCheck}
+        disabled={checking}
+        style={{
+          alignSelf: 'flex-start',
+          padding: '8px 16px',
+          borderRadius: 'var(--radius-md)',
+          border: 'none',
+          cursor: checking ? 'default' : 'pointer',
+          background: 'var(--accent-default)',
+          color: '#fff',
+          fontSize: 'var(--text-sm)',
+          fontWeight: 500,
+          opacity: checking ? 0.6 : 1,
+          transition: 'opacity 150ms ease-out',
+        }}
+      >
+        {checking ? '检查中…' : '立即检查更新'}
+      </button>
+    </div>
+  )
+}
+
 // ─── AI Providers ──────────────────────────────────────────
 
 const AI_PROVIDERS = [
@@ -903,6 +987,7 @@ export default function SettingsModal({ open, onClose }) {
             {activeTab === 'shortcuts' && <ShortcutsTab />}
             {activeTab === 'toolbar' && <ToolbarTab />}
             {activeTab === 'ai' && <AiTab />}
+            {activeTab === 'spec' && <SpecTab />}
             {activeTab === 'about' && <AboutTab />}
           </div>
         </div>

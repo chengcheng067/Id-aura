@@ -50,6 +50,7 @@ export const createCardSlice = (set, get) => ({
       zIndex: state.cards.length,
       locked: false,
       groupId: null,
+      opacity: 1,
     }
 
     const card = { ...base, ...props }

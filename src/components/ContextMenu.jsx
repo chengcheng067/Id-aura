@@ -17,6 +17,9 @@ import {
   Clipboard,
   Scaling,
   LayoutGrid,
+  Folder,
+  FolderOpen,
+  Minimize2,
   AlignStartVertical,
   AlignCenterVertical,
   AlignEndVertical,
@@ -36,7 +39,7 @@ import { exportSingleImage, exportBatchImages } from '../utils/exportImage'
  * Unchanged: all business logic (export, align, arrange, group, delete, etc.).
  * Changed: visual design (glass bg, lucide icons, three-column layout, entry animation).
  */
-export default function ContextMenu({ menu, onClose, onSettingsClick }) {
+export default function ContextMenu({ menu, onClose, onSettingsClick, onMiniWindow }) {
   const menuRef = useRef(null)
   const [exporting, setExporting] = useState(false)
   const [exportMsg, setExportMsg] = useState('')
@@ -57,6 +60,8 @@ export default function ContextMenu({ menu, onClose, onSettingsClick }) {
   const canUndo = useStore((s) => s.canUndo)
   const canRedo = useStore((s) => s.canRedo)
   const cards = useStore((s) => s.cards)
+  const collapsedGroups = useStore((s) => s.collapsedGroups)
+  const toggleGroupCollapsed = useStore((s) => s.toggleGroupCollapsed)
 
   // Close on outside click
   useEffect(() => {
@@ -149,6 +154,31 @@ export default function ContextMenu({ menu, onClose, onSettingsClick }) {
     }
   }
 
+  // Fold/expand item for a single group
+  const singleGroupId = !hasMultiSelect ? cards.find((c) => c.id === menu.cardId)?.groupId : null
+  const FoldItem = singleGroupId
+    ? (() => {
+        const collapsed = !!collapsedGroups[singleGroupId]
+        return (
+          <MenuItem
+            icon={collapsed ? FolderOpen : Folder}
+            label={collapsed ? '展开组' : '折叠组'}
+            onClick={() => doAndClose(() => toggleGroupCollapsed(singleGroupId))}
+          />
+        )
+      })()
+    : null
+
+  // Collapse all groups present in current selection (multi-select)
+  const multiGroupIds = (() => {
+    const set = new Set()
+    selIds.forEach((id) => {
+      const c = cards.find((cc) => cc.id === id)
+      if (c?.groupId && !collapsedGroups[c.groupId]) set.add(c.groupId)
+    })
+    return [...set]
+  })()
+
   return (
     <div
       ref={menuRef}
@@ -184,6 +214,13 @@ export default function ContextMenu({ menu, onClose, onSettingsClick }) {
               label="取消编组"
               shortcut="Ctrl+Shift+G"
               onClick={() => doAndClose(() => ungroupCards(selIds))}
+            />
+          )}
+          {multiGroupIds.length > 0 && (
+            <MenuItem
+              icon={Folder}
+              label={`折叠选中组 (${multiGroupIds.length})`}
+              onClick={() => doAndClose(() => multiGroupIds.forEach((gid) => toggleGroupCollapsed(gid)))}
             />
           )}
           <MenuItem
@@ -335,6 +372,7 @@ export default function ContextMenu({ menu, onClose, onSettingsClick }) {
           {menu.hasGroup && (
             <MenuItem icon={Unlink2} label="取消编组" onClick={() => doAndClose(() => ungroupCards([menu.cardId]))} />
           )}
+          {FoldItem}
           <MenuItem icon={Trash2} label="删除" danger onClick={() => doAndClose(() => deleteCards([menu.cardId]))} />
 
           <Divider />
@@ -376,6 +414,7 @@ export default function ContextMenu({ menu, onClose, onSettingsClick }) {
           {menu.hasGroup && (
             <MenuItem icon={Unlink2} label="取消编组" onClick={() => doAndClose(() => ungroupCards([menu.cardId]))} />
           )}
+          {FoldItem}
           <MenuItem icon={Trash2} label="删除" danger onClick={() => doAndClose(() => deleteCards([menu.cardId]))} />
         </>
       )}
@@ -384,6 +423,11 @@ export default function ContextMenu({ menu, onClose, onSettingsClick }) {
       {menu.isCanvas && (
         <>
           <SectionTitle>画布操作</SectionTitle>
+          <MenuItem
+            icon={Minimize2}
+            label="最小化到参考小窗"
+            onClick={() => doAndClose(() => onMiniWindow?.())}
+          />
           <MenuItem
             icon={Undo2}
             label="撤销"

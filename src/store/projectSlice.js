@@ -12,12 +12,21 @@ export const createProjectSlice = (set, get) => ({
   showSidePanel: true,
   showImporter: false,
   hasUnsavedChanges: false,
+  collapsedGroups: {},
 
   setDrawMode: (mode) => set({ drawMode: mode }),
   setDrawColor: (color) => set({ drawColor: color }),
   setSaving: (val) => set({ saving: val }),
   togglePanel: () => set(state => ({ showSidePanel: !state.showSidePanel })),
   toggleImporter: () => set(state => ({ showImporter: !state.showImporter })),
+
+  /**
+   * Toggle collapsed state of a group (fold to a proxy icon, like PureRef).
+   * @param {string} groupId
+   */
+  toggleGroupCollapsed: (groupId) => set(state => ({
+    collapsedGroups: { ...state.collapsedGroups, [groupId]: !state.collapsedGroups[groupId] },
+  })),
 
   /**
    * Add a user-defined custom spec.

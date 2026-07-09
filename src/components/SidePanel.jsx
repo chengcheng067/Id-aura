@@ -20,6 +20,9 @@ export default function SidePanel() {
   const customSpecs = useStore((s) => s.customSpecs)
   const addCustomSpec = useStore((s) => s.addCustomSpec)
   const deleteCustomSpec = useStore((s) => s.deleteCustomSpec)
+  // Re-compute the category tree whenever specs are (re)loaded
+  const specVersion = useStore((s) => s.specVersion)
+  const specStatus = useStore((s) => s.specStatus)
 
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -30,7 +33,7 @@ export default function SidePanel() {
 
   const specData = selectedCategory ? getSpecByCategory(selectedCategory) : null
 
-  const grouped = useMemo(() => getGroupedByPrimaryCategory(), [])
+  const grouped = useMemo(() => getGroupedByPrimaryCategory(), [specVersion])
 
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return null
@@ -52,7 +55,7 @@ export default function SidePanel() {
         isCustom: true,
       }))
     return [...builtIn, ...custom]
-  }, [searchQuery, customSpecs])
+  }, [searchQuery, customSpecs, specVersion])
 
   const toggleSubCollapse = (subKey) => {
     setCollapsedSubs((prev) => ({ ...prev, [subKey]: !prev[subKey] }))
@@ -98,6 +101,20 @@ export default function SidePanel() {
       >
         <span style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-primary)' }}>
           设计规范库
+        </span>
+        <span
+          title={`规范数据版本 ${specStatus.version} · 来源：${specStatus.source}`}
+          style={{
+            fontSize: 'var(--text-xs)',
+            color: 'var(--text-tertiary)',
+            fontWeight: 400,
+            cursor: 'default',
+            padding: '1px 6px',
+            borderRadius: 'var(--radius-xs)',
+            background: 'var(--surface-overlay)',
+          }}
+        >
+          v{specStatus.version}
         </span>
         <button
           onClick={togglePanel}

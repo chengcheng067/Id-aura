@@ -134,4 +134,41 @@ contextBridge.exposeInMainWorld('electronAPI', {
    */
   isEncryptionAvailable: () =>
     ipcRenderer.invoke('safe-is-available'),
+
+  /**
+   * Read the cached spec bundle from userData (latest remote fetch).
+   * @returns {Promise<{version:string,data:object}|null>}
+   */
+  getSpecCache: () =>
+    ipcRenderer.invoke('spec:getCache'),
+
+  /**
+   * Persist the latest spec bundle to userData for offline use.
+   * @param {{version:string,data:object}} payload
+   * @returns {Promise<{success:boolean}>}
+   */
+  saveSpecCache: (payload) =>
+    ipcRenderer.invoke('spec:saveCache', payload),
+
+  /**
+   * Open a compact always-on-top "reference" mini window that mirrors the board.
+   * (Simplified PureRef-style floating reference view.)
+   */
+  openMiniWindow: () =>
+    ipcRenderer.invoke('mini-window:open'),
+
+  /**
+   * Push a fresh board snapshot (PNG dataURL) to the mini window.
+   * @param {string} dataUrl - canvas.toDataURL() PNG snapshot
+   */
+  updateMiniWindow: (dataUrl) =>
+    ipcRenderer.invoke('mini-window:update', dataUrl),
+
+  /**
+   * Listen for the mini window being closed from its own UI.
+   * @param {Function} callback
+   */
+  onMiniWindowClosed: (callback) => {
+    ipcRenderer.on('mini-window:closed', () => callback())
+  },
 })

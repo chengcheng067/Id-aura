@@ -4,6 +4,7 @@ import { calcSnap, hitTest } from '../utils/geometry'
 import CardNode from './CardNode'
 import ContextMenu from './ContextMenu'
 import ZoomControls from './ZoomControls'
+import html2canvas from 'html2canvas'
 
 /**
  * Canvas — pure rendering + event dispatch.
@@ -34,6 +35,8 @@ export default function Canvas({ onSettingsClick }) {
   const editingGroupId = useStore((s) => s.editingGroupId)
   const enterGroupEdit = useStore((s) => s.enterGroupEdit)
   const exitGroupEdit = useStore((s) => s.exitGroupEdit)
+  const collapsedGroups = useStore((s) => s.collapsedGroups)
+  const toggleGroupCollapsed = useStore((s) => s.toggleGroupCollapsed)
 
   // --- Ephemeral local state ---
   const [isPanning, setIsPanning] = useState(false)
@@ -42,6 +45,16 @@ export default function Canvas({ onSettingsClick }) {
   // Refs for middle-click panning (capture phase — must bypass React batching)
   const isPanningRef = useRef(false)
   const panStartRef = useRef({ x: 0, y: 0 })
+
+  // Space-drag panning (PureRef/Figma muscle memory)
+  const [spaceHeld, setSpaceHeld] = useState(false)
+  const spaceHeldRef = useRef(false)
+  const panSourceRef = useRef(null) // 'space' | 'middle' | null
+
+  // Mini reference window (simplified PureRef-style floating view)
+  const miniOpenRef = useRef(false)
+  const miniTimerRef = useRef(null)
+  const miniSubRef = useRef(null)
   const [draggingCard, setDraggingCard] = useState(null)
   const [dragStart, setDragStart] = useState(null)
   const [resizing, setResizing] = useState(null)
@@ -120,6 +133,16 @@ export default function Canvas({ onSettingsClick }) {
     (e) => {
       if (e.target.closest('[data-context-menu]')) return
       closeContextMenu()
+
+      // --- Space-drag panning (works over cards too, like PureRef/Figma) ---
+      if (spaceHeldRef.current && e.button === 0 && !e.altKey) {
+        setIsPanning(true)
+        setPanStart({ x: e.clientX - canvas.offsetX, y: e.clientY - canvas.offsetY })
+        panSourceRef.current = 'space'
+        clearSelection()
+        e.preventDefault()
+        return
+      }
 
       // --- Drawing mode ---
       if (drawMode && e.button === 0 && !e.altKey) {
@@ -215,6 +238,32 @@ export default function Canvas({ onSettingsClick }) {
         return
       }
 
+      // --- Collapsed group proxy: drag whole group ---
+      const proxyEl = e.target.closest('[data-group-proxy]')
+      if (proxyEl && e.button === 0 && !e.altKey && !drawMode) {
+        if (proxyEl.closest('[data-no-drag]')) return // let expand button handle click
+        const groupId = proxyEl.getAttribute('data-group-proxy')
+        const members = cards.filter((c) => c.groupId === groupId)
+        if (members.length) {
+          e.stopPropagation()
+          if (!(e.ctrlKey || e.metaKey)) {
+            selectCards(members.map((c) => c.id), 'single')
+          }
+          const startPositions = members.map((c) => ({
+            id: c.id,
+            x: c.x,
+            y: c.y,
+            w: c.width || 220,
+            h: typeof c.height === 'number' ? c.height : 200,
+          }))
+          useStore.getState()._pushHistory()
+          const { x, y } = screenToCanvas(e.clientX, e.clientY)
+          setDraggingCard(members[0].id)
+          setDragStart({ x, y, startPositions })
+          return
+        }
+      }
+
       // --- Canvas background click ---
       const isBg = e.target === containerRef.current || e.target.classList.contains('canvas-bg')
       if (isBg) {
@@ -235,7 +284,7 @@ export default function Canvas({ onSettingsClick }) {
         }
       }
     },
-    [drawMode, drawColor, screenToCanvas, cards, selectedIds, selectCard, clearSelection, canvas, closeContextMenu, editingGroupId, exitGroupEdit],
+    [drawMode, drawColor, screenToCanvas, cards, selectedIds, selectCard, selectCards, clearSelection, canvas, closeContextMenu, editingGroupId, exitGroupEdit],
   )
 
   // --- Right-click on canvas background ---
@@ -431,6 +480,7 @@ export default function Canvas({ onSettingsClick }) {
   // --- Mouse up ---
   const handleMouseUp = useCallback(
     (e) => {
+      panSourceRef.current = null
       if (drawPath && drawPath.points.length > 1) {
         const finished = () => {
           const dp = drawPathRef.current
@@ -625,6 +675,151 @@ export default function Canvas({ onSettingsClick }) {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [drawMode, setDrawMode])
 
+  // --- Canvas keyboard shortcuts: space-pan, arrow nudge, F-fit ---
+  useEffect(() => {
+    const isTyping = (t) => {
+      if (!t) return false
+      const tag = t.tagName
+      return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || t.isContentEditable
+    }
+
+    const onKeyDown = (e) => {
+      // --- SPACE → enter pan mode (release to exit) ---
+      if (e.code === 'Space' && !isTyping(e.target)) {
+        e.preventDefault()
+        if (!spaceHeldRef.current) {
+          spaceHeldRef.current = true
+          setSpaceHeld(true)
+          closeContextMenu()
+        }
+        return
+      }
+
+      // --- ARROW KEYS → nudge selected cards (1px, Shift=10px) ---
+      if (e.key.startsWith('Arrow') && !isTyping(e.target)) {
+        const state = useStore.getState()
+        const sel = state.selectedIds
+        if (sel.length === 0) return
+        e.preventDefault()
+        // One undo step per discrete press (hold = continuous, one step)
+        if (!e.repeat) state._pushHistory()
+        const step = e.shiftKey ? 10 : 1
+        let dx = 0
+        let dy = 0
+        if (e.key === 'ArrowLeft') dx = -step
+        if (e.key === 'ArrowRight') dx = step
+        if (e.key === 'ArrowUp') dy = -step
+        if (e.key === 'ArrowDown') dy = step
+        const updates = {}
+        state.cards.forEach((c) => {
+          if (sel.includes(c.id) && !c.locked) {
+            updates[c.id] = { x: (c.x || 0) + dx, y: (c.y || 0) + dy }
+          }
+        })
+        if (Object.keys(updates).length > 0) state.batchUpdateCards(updates)
+        return
+      }
+
+      // --- F → fit all / Shift+F → 100% ---
+      if (
+        (e.key === 'f' || e.key === 'F') &&
+        !isTyping(e.target) &&
+        !e.ctrlKey && !e.metaKey && !e.altKey
+      ) {
+        e.preventDefault()
+        const state = useStore.getState()
+        if (e.shiftKey) state.resetView()
+        else state.focusAll()
+        return
+      }
+    }
+
+    const onKeyUp = (e) => {
+      if (e.code === 'Space') {
+        spaceHeldRef.current = false
+        setSpaceHeld(false)
+        if (panSourceRef.current === 'space') {
+          setIsPanning(false)
+          panSourceRef.current = null
+        }
+      }
+    }
+
+    const onBlur = () => {
+      if (spaceHeldRef.current) {
+        spaceHeldRef.current = false
+        setSpaceHeld(false)
+        if (panSourceRef.current === 'space') {
+          setIsPanning(false)
+          panSourceRef.current = null
+        }
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('keyup', onKeyUp)
+    window.addEventListener('blur', onBlur)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('keyup', onKeyUp)
+      window.removeEventListener('blur', onBlur)
+    }
+  }, [closeContextMenu])
+
+  // --- Mini reference window: capture + live sync (Electron only) ---
+  const captureMiniSnapshot = useCallback(async () => {
+    const el = containerRef.current
+    if (!el) return null
+    try {
+      const c = await html2canvas(el, {
+        backgroundColor: null,
+        scale: 0.5,
+        logging: false,
+        useCORS: true,
+      })
+      return c.toDataURL('image/png')
+    } catch {
+      return null
+    }
+  }, [])
+
+  const openMiniWindow = useCallback(async () => {
+    if (!window.electronAPI?.openMiniWindow) return
+    const dataUrl = await captureMiniSnapshot()
+    if (!dataUrl) return
+    window.electronAPI.openMiniWindow()
+    window.electronAPI.updateMiniWindow(dataUrl)
+    if (!miniOpenRef.current) {
+      miniOpenRef.current = true
+      miniSubRef.current = useStore.subscribe(() => {
+        if (miniTimerRef.current) clearTimeout(miniTimerRef.current)
+        miniTimerRef.current = setTimeout(async () => {
+          const url = await captureMiniSnapshot()
+          if (url) window.electronAPI?.updateMiniWindow(url)
+        }, 1200)
+      })
+    }
+  }, [captureMiniSnapshot])
+
+  // Stop live sync when the mini window is closed from the other side
+  useEffect(() => {
+    const handler = () => {
+      miniOpenRef.current = false
+      if (miniSubRef.current) {
+        miniSubRef.current()
+        miniSubRef.current = null
+      }
+      if (miniTimerRef.current) clearTimeout(miniTimerRef.current)
+    }
+    if (window.electronAPI?.onMiniWindowClosed) {
+      window.electronAPI.onMiniWindowClosed(handler)
+    }
+    return () => {
+      if (miniSubRef.current) miniSubRef.current()
+      if (miniTimerRef.current) clearTimeout(miniTimerRef.current)
+    }
+  }, [])
+
   // ==================== RENDER ====================
 
   return (
@@ -658,9 +853,11 @@ export default function Canvas({ onSettingsClick }) {
           ? 'crosshair'
           : isPanning
             ? 'grabbing'
-            : boxSelect
-              ? 'crosshair'
-              : 'default',
+            : spaceHeld
+              ? 'grab'
+              : boxSelect
+                ? 'crosshair'
+                : 'default',
         border: dragOverCanvas
           ? '2px dashed var(--accent-default)'
           : '2px solid transparent',
@@ -738,8 +935,37 @@ export default function Canvas({ onSettingsClick }) {
           height: 0,
         }}
       >
+        {/* Collapsed group proxies (folded to icons) */}
+        {Object.entries(collapsedGroups).filter(([, v]) => v).map(([gid]) => {
+          const members = cards.filter((c) => c.groupId === gid)
+          if (!members.length) return null
+          const xs = members.map((c) => c.x)
+          const ys = members.map((c) => c.y)
+          const xe = members.map((c) => c.x + (c.width || 220))
+          const ye = members.map((c) => c.y + (typeof c.height === 'number' ? c.height : 200))
+          const minX = Math.min(...xs)
+          const minY = Math.min(...ys)
+          const bboxW = Math.max(Math.max(...xe) - minX, 80)
+          return (
+            <GroupProxy
+              key={`proxy-${gid}`}
+              groupId={gid}
+              x={minX}
+              y={minY}
+              bboxW={bboxW}
+              count={members.length}
+              onExpand={toggleGroupCollapsed}
+            />
+          )
+        })}
+
         {cards.map((card) => {
+          if (card.groupId && collapsedGroups[card.groupId]) return null
           const isDimmed = editingGroupId && card.groupId !== editingGroupId
+          const cardOpacity = isDimmed ? 0.25 : (typeof card.opacity === 'number' ? card.opacity : 1)
+          const opacityStyle = isDimmed
+            ? { opacity: cardOpacity, pointerEvents: 'none' }
+            : (cardOpacity !== 1 ? { opacity: cardOpacity } : undefined)
           return (
           <div
             key={card.id}
@@ -756,7 +982,7 @@ export default function Canvas({ onSettingsClick }) {
               }
             }}
             onContextMenu={(e) => handleCardContextMenu(card, e)}
-            style={isDimmed ? { opacity: 0.25, pointerEvents: 'none' } : undefined}
+            style={opacityStyle}
           >
             <CardNode card={card} />
           </div>
@@ -797,11 +1023,14 @@ export default function Canvas({ onSettingsClick }) {
 
       {/* Context menu */}
       {contextMenu && (
-        <ContextMenu menu={contextMenu} onClose={closeContextMenu} onSettingsClick={onSettingsClick} />
+        <ContextMenu menu={contextMenu} onClose={closeContextMenu} onSettingsClick={onSettingsClick} onMiniWindow={openMiniWindow} />
       )}
 
       {/* Zoom controls — extracted component */}
       <ZoomControls />
+
+      {/* Floating property bar — opacity for single selected card */}
+      <PropertyBar />
 
       {/* Bottom-left hint */}
       <div
@@ -822,13 +1051,172 @@ export default function Canvas({ onSettingsClick }) {
           ? 'Esc 退出绘制 | 拖拽画线'
           : editingGroupId
             ? '组内编辑中 | Esc 或双击空白退出'
-            : '拖拽框选 | Ctrl+点击多选 | 右键菜单 | 中键平移 | 滚轮缩放 | Ctrl+G 编组 | 双击组进组编辑'}
+            : '拖拽框选 | Ctrl+点击多选 | 右键菜单 | 空格/中键平移 | 滚轮缩放 | 方向键微移 | F 适配 | Ctrl+G 编组 | 双击组进组编辑 | 右键折叠组'}
       </div>
     </div>
   )
 }
 
 // ==================== Sub-components ====================
+
+/**
+ * PropertyBar — floating glass bar shown when exactly one card is selected.
+ * Currently exposes single-image/multi-card opacity (PureRef-style transparency).
+ */
+function PropertyBar() {
+  const selectedIds = useStore((s) => s.selectedIds)
+  const cards = useStore((s) => s.cards)
+  const batchUpdateCards = useStore((s) => s.batchUpdateCards)
+  const pushHistory = useStore((s) => s._pushHistory)
+
+  const single = selectedIds.length === 1 ? cards.find((c) => c.id === selectedIds[0]) : null
+  const [draft, setDraft] = useState(100)
+  const pushedRef = useRef(false)
+  const prevIdRef = useRef(null)
+
+  // Sync draft when selection changes
+  useEffect(() => {
+    if (single?.id !== prevIdRef.current) {
+      prevIdRef.current = single?.id
+      pushedRef.current = false
+      if (single) setDraft(Math.round((single.opacity ?? 1) * 100))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [single?.id])
+
+  // Sync draft when opacity changes externally (e.g. undo)
+  useEffect(() => {
+    if (single) setDraft(Math.round((single.opacity ?? 1) * 100))
+  }, [single?.opacity])
+
+  if (!single) return null
+
+  const commitStart = () => {
+    if (!pushedRef.current) {
+      pushHistory()
+      pushedRef.current = true
+    }
+  }
+  const onChange = (e) => {
+    const v = Number(e.target.value)
+    setDraft(v)
+    batchUpdateCards({ [single.id]: { opacity: v / 100 } })
+  }
+  const onCommit = () => { pushedRef.current = false }
+
+  return (
+    <div
+      className="glass-light"
+      style={{
+        position: 'fixed',
+        bottom: 24,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 60,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        padding: '8px 16px',
+        borderRadius: 'var(--radius-card)',
+        background: 'var(--surface-card)',
+        boxShadow: 'var(--shadow-card)',
+      }}
+    >
+      <span style={{ fontSize: 12, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+        不透明度
+      </span>
+      <input
+        type="range"
+        min={0}
+        max={100}
+        value={draft}
+        onPointerDown={commitStart}
+        onChange={onChange}
+        onPointerUp={onCommit}
+        onBlur={onCommit}
+        onKeyDown={commitStart}
+        onKeyUp={onCommit}
+        style={{ width: 150, accentColor: 'var(--accent-default)', cursor: 'pointer' }}
+      />
+      <span
+        style={{
+          fontSize: 12,
+          color: 'var(--text-primary)',
+          minWidth: 36,
+          textAlign: 'right',
+          fontVariantNumeric: 'tabular-nums',
+          fontWeight: 500,
+        }}
+      >
+        {draft}%
+      </span>
+    </div>
+  )
+}
+
+/**
+ * GroupProxy — folded representation of a collapsed group (PureRef-style).
+ * Acts as a draggable handle for the whole group; double-click or the
+ * "展开" button expands it back.
+ */
+function GroupProxy({ groupId, x, y, bboxW, count, onExpand }) {
+  const pw = Math.min(Math.max(bboxW, 90), 220)
+  const ph = 44
+  return (
+    <div
+      data-group-proxy={groupId}
+      onDoubleClick={(e) => {
+        e.stopPropagation()
+        onExpand(groupId)
+      }}
+      style={{
+        position: 'absolute',
+        left: x,
+        top: y,
+        width: pw,
+        height: ph,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        padding: '0 10px',
+        cursor: 'grab',
+        borderRadius: 'var(--radius-sm)',
+        border: '1px solid var(--border-default)',
+        background: 'var(--surface-card)',
+        boxShadow: 'var(--shadow-card)',
+        color: 'var(--text-primary)',
+        fontSize: 12,
+        userSelect: 'none',
+        zIndex: 5,
+      }}
+    >
+      <span style={{ fontSize: 16, lineHeight: 1 }}>📁</span>
+      <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        组 · {count} 项
+      </span>
+      <button
+        data-no-drag
+        onClick={(e) => {
+          e.stopPropagation()
+          onExpand(groupId)
+        }}
+        style={{
+          flexShrink: 0,
+          padding: '3px 8px',
+          borderRadius: 'var(--radius-xs)',
+          border: '1px solid var(--border-default)',
+          background: 'transparent',
+          color: 'var(--text-secondary)',
+          cursor: 'pointer',
+          fontSize: 11,
+          fontFamily: 'var(--font-family)',
+        }}
+      >
+        展开
+      </button>
+    </div>
+  )
+}
 
 function SelectionBox({ boxSelect }) {
   const { startX, startY, currentX, currentY } = boxSelect

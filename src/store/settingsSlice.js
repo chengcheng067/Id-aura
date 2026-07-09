@@ -1,4 +1,5 @@
 import { readSettings, writeSettings, readRecentFiles, writeRecentFiles } from '../utils/fileIO'
+import { initSpecs, getSpecsVersion } from '../data/specs'
 
 const MAX_RECENT_FILES = 10
 
@@ -50,6 +51,11 @@ const DEFAULT_SETTINGS = {
       'cardCount',
     ],
   },
+  spec: {
+    // Remote spec source. jsDelivr (GitHub CDN) is preferred; GitHub raw is the
+    // automatic fallback inside initSpecs(). User can point this anywhere.
+    source: 'https://cdn.jsdelivr.net/gh/chengcheng067/Id-aura@main/spec.json',
+  },
 }
 
 /**
@@ -89,6 +95,12 @@ function mergeDefaults(loaded) {
 export const createSettingsSlice = (set, get) => ({
   settings: { ...DEFAULT_SETTINGS },
   recentFiles: [],
+
+  // ─── Spec data runtime state (P0 规范库外置化) ──────────
+  // specVersion is bumped on every successful spec load; UI (SidePanel) depends
+  // on it so it re-computes the category tree when data changes.
+  specVersion: 0,
+  specStatus: { version: getSpecsVersion(), source: 'builtin' },
 
   // ─── Persistence ───────────────────────────────────────────
 
@@ -225,6 +237,29 @@ export const createSettingsSlice = (set, get) => ({
     set({ settings: defaults, recentFiles: [] })
     writeRecentFiles([])
     get().saveSettings()
+  },
+
+  // ─── Spec source (P0 规范库外置化) ───────────────────────
+
+  /** Update the remote spec source URL and persist. */
+  updateSpecSource: (url) => {
+    set((state) => ({
+      settings: { ...state.settings, spec: { ...state.settings.spec, source: url } },
+    }))
+    get().saveSettings()
+  },
+
+  /**
+   * Re-fetch specs from the remote source now. Bumps specVersion on every
+   * successful load so the UI refreshes. Safe to call repeatedly.
+   */
+  refreshSpecs: async () => {
+    const src = get().settings.spec.source
+    await initSpecs({
+      specSource: src,
+      onUpdate: (info) =>
+        set((state) => ({ specVersion: state.specVersion + 1, specStatus: info })),
+    })
   },
 
   // ─── Recent files ──────────────────────────────────────────

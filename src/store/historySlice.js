@@ -17,7 +17,7 @@ const MAX_HISTORY = 50
 /** Fields to include in each snapshot (excludes transient/internal data) */
 const SNAPSHOT_FIELDS = [
   'id', 'type', 'x', 'y', 'width', 'height', 'rotation',
-  'zIndex', 'locked', 'groupId',
+  'zIndex', 'locked', 'groupId', 'opacity',
   'imageUrl', 'name', 'flipH', 'flipV',
   'text', 'svgPath', 'specData', 'sectionTitle',
   'strokeColor', 'strokeWidth',
