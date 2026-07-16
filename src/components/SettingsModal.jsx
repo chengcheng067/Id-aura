@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { X, Palette, FileText, Monitor, Keyboard, Heart, Bot, LayoutTemplate, Database } from 'lucide-react'
+import { X, Palette, FileText, Monitor, Keyboard, Heart, Bot, LayoutTemplate, Database, RefreshCw, Download } from 'lucide-react'
 import useStore from '../store/useStore'
 import { testConnection } from '../utils/aiClient'
 import packageJson from '../../package.json'
@@ -440,6 +440,28 @@ function ToolbarTab() {
 // ─── About Tab ───────────────────────────────────────────────
 
 function AboutTab() {
+  const appUpdate = useStore((s) => s.appUpdate)
+  const checkForAppUpdate = useStore((s) => s.checkForAppUpdate)
+  const [checking, setChecking] = useState(false)
+  const [lastCheckError, setLastCheckError] = useState(null)
+
+  const handleCheck = async () => {
+    setChecking(true)
+    setLastCheckError(null)
+    try {
+      const result = await checkForAppUpdate()
+      if (result.error) setLastCheckError(result.error)
+    } finally {
+      setChecking(false)
+    }
+  }
+
+  const goDownload = () => {
+    const url = (appUpdate.info && appUpdate.info.downloadUrl) || 'https://github.com/chengcheng067/Id-aura/releases/latest'
+    if (window.electronAPI?.openExternal) window.electronAPI.openExternal(url)
+    else window.open(url, '_blank')
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'center' }}>
       {/* App info */}
@@ -451,6 +473,66 @@ function AboutTab() {
           v{packageJson.version} · 面向餐饮工装设计师的灵感图版工具
         </p>
       </div>
+
+      {/* Update status + check button */}
+      <div
+        className="glass-strong iridescent-border"
+        style={{
+          borderRadius: 'var(--radius-panel)',
+          padding: '12px 16px',
+          width: '100%',
+          background: 'var(--surface-card)',
+          boxShadow: 'var(--shadow-card)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
+            {appUpdate.available ? (
+              <span style={{ color: 'var(--accent-default)', fontWeight: 500 }}>
+                发现新版本 v{appUpdate.info?.latestVersion}
+              </span>
+            ) : appUpdate.checked ? (
+              <span style={{ color: 'var(--text-tertiary)' }}>已是最新版本</span>
+            ) : (
+              <span style={{ color: 'var(--text-tertiary)' }}>尚未检查更新</span>
+            )}
+          </div>
+          {appUpdate.available ? (
+            <button
+              onClick={goDownload}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '6px 14px', borderRadius: 'var(--radius-md)', border: 'none',
+                cursor: 'pointer', background: 'var(--accent-default)', color: '#fff',
+                fontSize: 'var(--text-sm)', fontWeight: 500, whiteSpace: 'nowrap',
+              }}
+            >
+              <Download size={15} /> 去下载
+            </button>
+          ) : (
+            <button
+              onClick={handleCheck}
+              disabled={checking}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '6px 14px', borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--border-default)', cursor: checking ? 'default' : 'pointer',
+                background: 'transparent', color: 'var(--text-secondary)',
+                fontSize: 'var(--text-sm)', whiteSpace: 'nowrap', opacity: checking ? 0.6 : 1,
+              }}
+            >
+              <RefreshCw size={14} /> {checking ? '检查中…' : '检查更新'}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Check error feedback */}
+      {lastCheckError && (
+        <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-danger, #ef4444)', margin: 0 }}>
+          ⚠ 检查失败：{lastCheckError}
+        </p>
+      )}
 
       {/* Author info */}
       <div
@@ -541,14 +623,18 @@ function AboutTab() {
 function SpecTab() {
   const specSource = useStore((s) => s.settings.spec.source)
   const updateSpecSource = useStore((s) => s.updateSpecSource)
-  const refreshSpecs = useStore((s) => s.refreshSpecs)
+  const refreshSpecsDataAction = useStore((s) => s.refreshSpecsDataAction)
   const specStatus = useStore((s) => s.specStatus)
+  const specError = useStore((s) => s.specError)
   const [checking, setChecking] = useState(false)
+  const [lastResult, setLastResult] = useState(null)
 
   const handleCheck = async () => {
     setChecking(true)
+    setLastResult(null)
     try {
-      await refreshSpecs()
+      const result = await refreshSpecsDataAction()
+      setLastResult(result)
     } finally {
       setChecking(false)
     }
@@ -567,10 +653,37 @@ function SpecTab() {
         style={{ borderRadius: 'var(--radius-card)', padding: '10px 12px', background: 'var(--surface-card)' }}
       >
         <div style={labelS}>当前生效规范</div>
-        <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-primary)' }}>
+        <div style={{ fontSize: 'var(--text-sm)', color: specError ? 'var(--color-danger, #ef4444)' : 'var(--text-primary)' }}>
           版本 v{specStatus.version} · 来源：{specStatus.source}
+          {specStatus.categories > 0 && ` · ${specStatus.categories} 个品类`}
         </div>
+        {specError && (
+          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-danger, #ef4444)', marginTop: 4 }}>
+            ⚠ {specError.message}
+          </div>
+        )}
       </div>
+
+      {/* Last check result */}
+      {lastResult && (
+        <div
+          className="glass-medium"
+          style={{
+            borderRadius: 'var(--radius-card)', padding: '10px 12px',
+            background: lastResult.success ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
+            borderLeft: `3px solid ${lastResult.success ? 'var(--color-success, #22c55e)' : 'var(--color-danger, #ef4444)'}`,
+          }}
+        >
+          <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-primary)', fontWeight: 500 }}>
+            {lastResult.success ? '✅ 更新成功' : '❌ 更新失败'}
+          </div>
+          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginTop: 2 }}>
+            {lastResult.success
+              ? `版本 v${lastResult.version} · ${lastResult.categories} 品类 · ${lastResult.source.includes('jsdelivr') ? 'jsDelivr (CDN)' : lastResult.source.includes('github') ? 'GitHub' : '自定义源'}`
+              : lastResult.error || '未知错误'}
+          </div>
+        </div>
+      )}
 
       {/* Source URL */}
       <div>

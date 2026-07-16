@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, dialog, ipcMain, safeStorage } = require('electron')
+const { app, BrowserWindow, Menu, dialog, ipcMain, safeStorage, shell } = require('electron')
 const path = require('path')
 const fs = require('fs')
 
@@ -445,6 +445,16 @@ ipcMain.handle('spec:saveCache', async (_event, payload) => {
   try {
     const p = path.join(app.getPath('userData'), 'spec-cache.json')
     fs.writeFileSync(p, JSON.stringify(payload), 'utf8')
+    return { success: true }
+  } catch (_) {
+    return { success: false }
+  }
+})
+
+// Open external URLs (e.g. release download page) in the OS browser.
+ipcMain.handle('app:openExternal', (_event, url) => {
+  try {
+    if (url && typeof url === 'string') shell.openExternal(url)
     return { success: true }
   } catch (_) {
     return { success: false }

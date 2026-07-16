@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Search, X, ChevronDown } from 'lucide-react'
+import { Search, X, ChevronDown, AlertCircle, RefreshCw } from 'lucide-react'
 import {
   getSpecByCategory,
   searchSpecs,
@@ -23,6 +23,8 @@ export default function SidePanel() {
   // Re-compute the category tree whenever specs are (re)loaded
   const specVersion = useStore((s) => s.specVersion)
   const specStatus = useStore((s) => s.specStatus)
+  const specError = useStore((s) => s.specError)
+  const refreshSpecsDataAction = useStore((s) => s.refreshSpecsDataAction)
 
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -97,25 +99,62 @@ export default function SidePanel() {
           alignItems: 'center',
           justifyContent: 'space-between',
           flexShrink: 0,
+          gap: 6,
         }}
       >
         <span style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-primary)' }}>
           设计规范库
         </span>
-        <span
-          title={`规范数据版本 ${specStatus.version} · 来源：${specStatus.source}`}
-          style={{
-            fontSize: 'var(--text-xs)',
-            color: 'var(--text-tertiary)',
-            fontWeight: 400,
-            cursor: 'default',
-            padding: '1px 6px',
-            borderRadius: 'var(--radius-xs)',
-            background: 'var(--surface-overlay)',
-          }}
-        >
-          v{specStatus.version}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          {/* Error indicator */}
+          {specError && (
+            <span
+              title={`加载失败：${specError.message}\n点击右侧 ↻ 重试`}
+              style={{
+                color: 'var(--color-danger, #ef4444)',
+                cursor: 'default',
+                display: 'flex',
+                alignItems: 'center',
+              }}
+            >
+              <AlertCircle size={13} />
+            </span>
+          )}
+          {/* Version badge with category count */}
+          <span
+            title={`规范数据版本 ${specStatus.version} · 来源：${specStatus.source}${specStatus.categories ? ` · ${specStatus.categories} 个品类` : ''}${specError ? `\n\n⚠ ${specError.message}` : ''}`}
+            style={{
+              fontSize: 'var(--text-xs)',
+              color: specError ? 'var(--color-danger, #ef4444)' : 'var(--text-tertiary)',
+              fontWeight: 400,
+              cursor: 'default',
+              padding: '1px 6px',
+              borderRadius: 'var(--radius-xs)',
+              background: specError ? 'rgba(239,68,68,0.1)' : 'var(--surface-overlay)',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            v{specStatus.version}{specStatus.categories ? ` · ${specStatus.categories}类` : ''}
+          </span>
+          {/* Manual reload button */}
+          <button
+            onClick={() => refreshSpecsDataAction()}
+            title="重新加载规范库"
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--text-tertiary)',
+              cursor: 'pointer',
+              padding: '2px 3px',
+              borderRadius: 'var(--radius-xs)',
+              display: 'flex',
+              alignItems: 'center',
+              lineHeight: 0,
+            }}
+          >
+            <RefreshCw size={12} />
+          </button>
+        </div>
         <button
           onClick={togglePanel}
           style={{

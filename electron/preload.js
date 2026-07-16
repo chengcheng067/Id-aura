@@ -171,4 +171,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onMiniWindowClosed: (callback) => {
     ipcRenderer.on('mini-window:closed', () => callback())
   },
+
+  /**
+   * Open an external URL in the OS default browser (e.g. a release
+   * download page). Delegates to shell.openExternal in main.
+   * @param {string} url
+   */
+  openExternal: (url) =>
+    ipcRenderer.invoke('app:openExternal', url),
 })

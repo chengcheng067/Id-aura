@@ -21,7 +21,7 @@ import {
 import useStore from '../store/useStore'
 import ToolbarButton from './ToolbarButton'
 
-export default function Toolbar({ fileLoadRef, fileInputRef, onSettingsClick, onCollapse }) {
+export default function Toolbar({ fileLoadRef, fileInputRef, onSettingsClick, onCollapse, onShowUpdate }) {
   const showSidePanel = useStore((s) => s.showSidePanel)
   const togglePanel = useStore((s) => s.togglePanel)
   const drawMode = useStore((s) => s.drawMode)
@@ -38,6 +38,7 @@ export default function Toolbar({ fileLoadRef, fileInputRef, onSettingsClick, on
   const redo = useStore((s) => s.redo)
   const canUndo = useStore((s) => s.canUndo)
   const canRedo = useStore((s) => s.canRedo)
+  const appUpdate = useStore((s) => s.appUpdate)
 
   // Toolbar visibility from settings
   const toolbarVisible = useStore((s) => new Set(s.settings.toolbar?.visible || []))
@@ -347,25 +348,49 @@ export default function Toolbar({ fileLoadRef, fileInputRef, onSettingsClick, on
         </div>
       ))}
 
-      {/* Card count pill badge */}
-      {isVisible('cardCount') && (
-        <span
-          style={{
-            background: 'var(--surface-overlay)',
-            border: '1px solid var(--border-default)',
-            borderRadius: 'var(--radius-full)',
-            padding: '3px 10px',
-            fontSize: 'var(--text-xs)',
-            color: 'var(--text-secondary)',
-            fontWeight: 500,
-            whiteSpace: 'nowrap',
-            letterSpacing: 0.3,
-            marginLeft: 'auto',
-          }}
-        >
-          {cardCount} 张卡片
-        </span>
-      )}
+      {/* Right cluster: app-update badge + card count */}
+      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+        {appUpdate.available && (
+          <button
+            onClick={onShowUpdate}
+            title={`发现新版本 v${appUpdate.info?.latestVersion}`}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              padding: '4px 10px',
+              borderRadius: 'var(--radius-full)',
+              border: 'none',
+              cursor: 'pointer',
+              background: 'var(--accent-gradient)',
+              color: '#fff',
+              fontSize: 'var(--text-xs)',
+              fontWeight: 600,
+              boxShadow: '0 0 10px rgba(124,58,237,0.55)',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <Download size={14} /> 新版本 v{appUpdate.info?.latestVersion}
+          </button>
+        )}
+        {isVisible('cardCount') && (
+          <span
+            style={{
+              background: 'var(--surface-overlay)',
+              border: '1px solid var(--border-default)',
+              borderRadius: 'var(--radius-full)',
+              padding: '3px 10px',
+              fontSize: 'var(--text-xs)',
+              color: 'var(--text-secondary)',
+              fontWeight: 500,
+              whiteSpace: 'nowrap',
+              letterSpacing: 0.3,
+            }}
+          >
+            {cardCount} 张卡片
+          </span>
+        )}
+      </div>
     </div>
   )
 }

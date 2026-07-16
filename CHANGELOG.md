@@ -1,5 +1,62 @@
 # 更新日志
 
+## v2.10.1（2026-07-15）— 双通道解耦 + 规范库加载修复
+
+> 修复 v2.10.0 规范库未更新的问题：拆分「软件版本检测」与「规范数据刷新」为两个独立通道，消除耦合导致的静默失败。
+
+### 🔧 修复
+1. **双通道架构** — `specs.js` 拆分为三个独立函数：
+   - **Channel A (`checkAppUpdate`)**：只检查软件版本，不碰规范数据 → 关于页"检查更新"
+   - **Channel B (`refreshSpecsData`)**：只刷新规范库数据，返回详细结果 → 规范 tab"立即检查更新"
+   - **Channel C (`initSpecs`)**：启动编排器，并行调 A+B（App.jsx 不变）
+2. **错误不再静默吞掉** — 所有网络/解析错误结构化返回 `{message, timestamp}`，UI 三处可见（面板红标 + tooltip / 关于页 / 规范 tab 结果卡片）
+3. **线上即权威** — 规范数据只要远程取得到就覆盖本地，不再要求版本号大于本地（version 仅展示用）
+4. **构建产物验证** — 确认新代码进入 dist 打包产物（v2.10.0 的 exe 存在旧代码问题）
+
+## v2.10.0（2026-07-14）— 软件本体自动自检更新
+
+> 复用「规范库 GitHub 热更新通道」（`spec.json`），软件每次启动自动检测**软件本体（EXE）是否有新版本**，无需自建后端、无需额外更新服务。改规范与发版本共用同一条分发链路。
+
+### 🆕 新增功能
+
+1. **软件版本自检** — 启动时除拉取规范数据外，额外解析 `spec.json` 顶层 `app` 节点，对比本地 `package.json` 版本号，发现更新即提示
+2. **工具栏更新徽标** — 发现新版本时，工具栏右端出现紫色脉冲「新版本 vX」按钮，点击弹出更新详情
+3. **更新弹窗（UpdateDialog）** — 展示新版本号、当前版本、更新说明，提供「去下载 / 稍后再说 / 忽略此版本」三档操作
+4. **关于页检查入口** — 设置页「关于」标签新增「检查更新」按钮与状态（已是最新 / 发现新版本 / 尚未检查），发现时直接「去下载」
+5. **外部链接安全打开** — 新增 Electron IPC `app:openExternal`，经系统默认浏览器打开下载页（仅允许字符串 URL），规避 `shell.openExternal` 注入风险
+6. **忽略策略** — 「忽略此版本」会持久记住该版本号，直到发布更高版本才再次提示；「稍后再说」仅隐藏本次会话提示
+
+### 🔧 技术实现
+
+- `spec.json` 新增顶层 `app` 节点：`{ latestVersion, minVersion, critical, downloadUrl, releaseNotes, publishDate }`
+- `src/data/specs.js`：导出 `getAppInfo/setAppInfo/compareVersion`，`initSpecs` 新增 `onAppInfo` 回调（独立于规范数据版本，远程有 `app` 即覆盖）
+- `src/store/settingsSlice.js`：新增 `appUpdate` 状态（`available/info/checked/skippedVersion`）与 `dismissAppUpdate / skipAppVersion` action
+
+### 🌐 规范库分发行为变更（重要）
+
+- **线上即权威**：`initSpecs` 的远程覆盖逻辑从「远程 `version` 大于本地才覆盖」改为「**只要线上取到品类数据就直接覆盖本地缓存**」。即你改完线上 `spec.json` 并提交后，用户下次启动即生效，**不再需要刻意提升 `version` 字段**（该字段仅用于展示/离线缓存标识）。
+- 兜底链路不变：自定义源 → jsDelivr → GitHub raw；全部不可达时静默保留内置兜底（45 品类）/ 上次缓存。
+- `src/components/Toolbar.jsx`：右端集群新增更新徽标（仅 `appUpdate.available` 时显示）
+- `src/components/UpdateDialog.jsx`：新建更新弹窗（critical 时隐藏「稍后 / 忽略」）
+- `src/components/SettingsModal.jsx`：关于页新增检查更新入口
+- `electron/main.js` + `electron/preload.js`：新增 `app:openExternal` IPC
+
+### ⚠️ 发布须知（维护者）
+
+- **发布新版本时**：构建 EXE 后，将 `spec.json` 的 `app.latestVersion` 改为新版本号（如 `2.10.0`）并提交——已装旧版的用户下次启动即收到提示
+- **不要提前改** `app.latestVersion`：它代表「当前可下载的最新版」，提前改成未发布的版本会让用户点到尚不存在的下载页
+- `scripts/gen-spec.mjs` 现会**保留**目标 `spec.json` 已有的 `app` 节点，规范数据重新生成不会误清发布版本信息
+
+### ✅ 验证
+
+| 项目 | 结果 |
+|------|------|
+| 单元测试 | ✅ 221/221 全过（含 app 自检 6 项新增用例） |
+| 生产构建 | ✅ 零错误 |
+| Electron 主进程 / 预加载语法 | ✅ node --check 通过 |
+
+---
+
 ## v2.9.1（2026-07-09）— 规范库外置化（P0）
 
 > 规范数据不再写死在前端，改由「内置兜底 + 远程热更新」驱动。**改规范不再需要重新打包安装，用户无感升级**。无需自有服务器——直接复用 GitHub 仓库作为规范源。

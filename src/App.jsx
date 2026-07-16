@@ -12,6 +12,7 @@ import ResizeHandle from './components/ResizeHandle'
 import SettingsModal from './components/SettingsModal'
 import WelcomePage from './components/WelcomePage'
 import CloseDialog from './components/CloseDialog'
+import UpdateDialog from './components/UpdateDialog'
 
 /** Extract filename from a full path (Node-style or Windows-style). */
 function basename(filePath) {
@@ -59,6 +60,7 @@ export default function App() {
   const [showWelcome, setShowWelcome] = useState(false)
   const [welcomeResolved, setWelcomeResolved] = useState(false)
   const [showCloseConfirm, setShowCloseConfirm] = useState(false)
+  const [showUpdate, setShowUpdate] = useState(false)
 
   // ── Toolbar collapse / draggable logo ball state ─────
   const [toolbarCollapsed, setToolbarCollapsed] = useState(false)
@@ -450,12 +452,13 @@ export default function App() {
         </div>
       ) : (
         <div ref={toolbarWrapRef} style={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 100, width: toolbarWidth ?? 'auto', maxWidth: 'calc(100% - 24px)', minWidth: 280 }}>
-          <Toolbar
-            fileLoadRef={fileLoadRef}
-            fileInputRef={fileInputRef}
-            onSettingsClick={() => setShowSettings(true)}
-            onCollapse={() => setToolbarCollapsed(true)}
-          />
+        <Toolbar
+          fileLoadRef={fileLoadRef}
+          fileInputRef={fileInputRef}
+          onSettingsClick={() => setShowSettings(true)}
+          onCollapse={() => setToolbarCollapsed(true)}
+          onShowUpdate={() => setShowUpdate(true)}
+        />
           <ToolbarResizeHandle onResize={(dx) => setToolbarWidth((w) => {
             const current = w ?? toolbarWrapRef.current?.getBoundingClientRect().width ?? 600
             return Math.min(Math.max(current - dx * 2, 320), window.innerWidth - 48)
@@ -539,6 +542,9 @@ export default function App() {
           }}
         />
       )}
+
+      {/* App update prompt (self-check vs GitHub-hosted spec channel) */}
+      <UpdateDialog open={showUpdate} onClose={() => setShowUpdate(false)} />
     </div>
   )
 }

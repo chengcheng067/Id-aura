@@ -1,5 +1,10 @@
 import { readSettings, writeSettings, readRecentFiles, writeRecentFiles } from '../utils/fileIO'
-import { initSpecs, getSpecsVersion } from '../data/specs'
+import { initSpecs, checkAppUpdate, refreshSpecsData, getSpecsVersion, compareVersion, getAppInfo } from '../data/specs'
+import packageJson from '../../package.json'
+
+// Current running app version (from package.json). Used to decide whether
+// a remotely-published version (spec.json "app" node) is "newer".
+const CURRENT_APP_VERSION = packageJson.version
 
 const MAX_RECENT_FILES = 10
 
@@ -97,10 +102,16 @@ export const createSettingsSlice = (set, get) => ({
   recentFiles: [],
 
   // ─── Spec data runtime state (P0 规范库外置化) ──────────
-  // specVersion is bumped on every successful spec load; UI (SidePanel) depends
-  // on it so it re-computes the category tree when data changes.
+  // specVersion is bumped on every spec load (success or fail); UI
+  // (SidePanel) depends on it so it re-computes the category tree.
   specVersion: 0,
-  specStatus: { version: getSpecsVersion(), source: 'builtin' },
+  specStatus: { version: getSpecsVersion(), source: 'builtin', categories: 0 },
+  specError: null,   // { message, timestamp } | null — last refresh error
+
+  // ─── App self-update (reuses the spec GitHub channel) ──────
+  // `info` is the remote spec.json "app" node; `available` means a
+  // newer app version exists and the user hasn't ignored it.
+  appUpdate: { available: false, info: null, checked: false, skippedVersion: null },
 
   // ─── Persistence ───────────────────────────────────────────
 
@@ -249,18 +260,89 @@ export const createSettingsSlice = (set, get) => ({
     get().saveSettings()
   },
 
+  // ═══ Channel A: App version check (lightweight) ═══
+  // Only touches appUpdate state. Does NOT reload spec data.
+  // Can be called independently from About tab "检查更新".
   /**
-   * Re-fetch specs from the remote source now. Bumps specVersion on every
-   * successful load so the UI refreshes. Safe to call repeatedly.
+   * Check for a newer app version by fetching the remote "app" node.
+   * Safe to call repeatedly; only modifies appUpdate state.
+   */
+  checkForAppUpdate: async () => {
+    const src = get().settings.spec.source
+    const result = await checkAppUpdate({ specSource: src })
+    // result is { app, source, error }
+    if (!result.app || !result.app.latestVersion) {
+      set({ appUpdate: { available: false, info: null, checked: true, skippedVersion: get().appUpdate.skippedVersion } })
+      return result
+    }
+    const cmp = compareVersion(result.app.latestVersion, CURRENT_APP_VERSION)
+    const skipped = get().appUpdate.skippedVersion === result.app.latestVersion
+    set({
+      appUpdate: {
+        available: cmp > 0 && !skipped,
+        info: result.app,
+        checked: true,
+        skippedVersion: skipped ? result.app.latestVersion : get().appUpdate.skippedVersion,
+      },
+    })
+    return result
+  },
+
+  // ═══ Channel B: Specs data refresh (full reload) ═══
+  // Only touches specVersion / specStatus / specError state.
+  // Can be called independently from Spec tab "立即检查更新".
+  /**
+   * Re-fetch specs data from remote. Overwrites local library when
+   * remote is reachable (SOURCE OF TRUTH). Always updates status/error
+   * so the UI can show what happened.
+   */
+  refreshSpecsDataAction: async () => {
+    const src = get().settings.spec.source
+    const result = await refreshSpecsData({ specSource: src })
+    // result is { success, version, source, categories, error }
+    set((state) => ({
+      specVersion: state.specVersion + 1,
+      specStatus: {
+        version: result.version,
+        source: result.source,
+        categories: result.categories,
+      },
+      specError: result.error
+        ? { message: result.error, timestamp: Date.now() }
+        : null,
+    }))
+    return result
+  },
+
+  // ═══ Channel C: Startup orchestrator (backward compatible) ═══
+  // Called by App.jsx on launch. Runs both channels in parallel.
+  /**
+   * Full startup refresh — runs both app-version check and specs-data
+   * reload. This is what App.jsx calls on launch; individual tabs can
+   * call checkForAppUpdate / refreshSpecsDataAction independently.
    */
   refreshSpecs: async () => {
-    const src = get().settings.spec.source
-    await initSpecs({
-      specSource: src,
-      onUpdate: (info) =>
-        set((state) => ({ specVersion: state.specVersion + 1, specStatus: info })),
-    })
+    // Run both channels in parallel (they're independent)
+    await Promise.all([
+      get().checkForAppUpdate(),
+      get().refreshSpecsDataAction(),
+    ])
   },
+
+  /**
+   * Dismiss the update prompt for this session (without forgetting the version).
+   * The prompt will re-appear next launch unless the version is skipped.
+   */
+  dismissAppUpdate: () => set((state) => ({ appUpdate: { ...state.appUpdate, available: false } })),
+
+  /**
+   * Permanently ignore a specific version (won't prompt again until a
+   * newer version is published).
+   * @param {string} version
+   */
+  skipAppVersion: (version) => set((state) => ({
+    appUpdate: { ...state.appUpdate, available: false, skippedVersion: version },
+  })),
 
   // ─── Recent files ──────────────────────────────────────────
 
