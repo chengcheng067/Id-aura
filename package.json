@@ -55,16 +55,19 @@
       ],
       "icon": "public/assets/icon.ico",
       "sign": null,
-      "artifactName": "ID-Aura-${version}-Setup.${ext}"
+      "artifactName": "ID-Aura-${version}-Portable.${ext}"
     },
     "nsis": {
       "include": "build/installer.nsh",
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
+      "allowToChangeInstallationDirectory": false,
       "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "menuCategory": false,
       "perMachine": false,
       "runAfterFinish": true,
-      "deleteAppDataOnUninstall": true
+      "deleteAppDataOnUninstall": false,
+      "artifactName": "ID-Aura-${version}-Setup.${ext}"
     },
     "fileAssociations": [
       {
