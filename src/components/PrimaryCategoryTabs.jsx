@@ -40,7 +40,7 @@ export default function PrimaryCategoryTabs({ value, onChange }) {
               }}
               onMouseEnter={(e) => {
                 if (!active) {
-                  e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
+                  e.currentTarget.style.background = 'var(--hover-faint)'
                   e.currentTarget.style.color = 'var(--text-primary)'
                 }
               }}

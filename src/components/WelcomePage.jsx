@@ -385,7 +385,7 @@ function ActionButton({ icon: Icon, label, primary, onClick }) {
             ? '1px solid var(--border-strong)'
             : '1px solid var(--border-default)',
         background: primary
-          ? 'var(--accent-default)'
+          ? 'var(--accent-gradient)'
           : hovered
             ? 'var(--surface-card-hover)'
             : 'var(--surface-card)',
@@ -393,6 +393,8 @@ function ActionButton({ icon: Icon, label, primary, onClick }) {
         cursor: 'pointer',
         fontSize: 'var(--text-sm)',
         fontWeight: 500,
+        boxShadow: primary ? (hovered ? '0 6px 20px rgba(124,58,237,0.5)' : '0 4px 14px rgba(124,58,237,0.35)') : 'none',
+        transform: primary && hovered ? 'translateY(-1px)' : 'none',
         transition: 'all 150ms ease-out',
         fontFamily: 'var(--font-family)',
       }}

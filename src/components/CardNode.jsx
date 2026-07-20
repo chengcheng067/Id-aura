@@ -317,9 +317,9 @@ function ImageCard({ card, isSelected, multiSelected, hovered, inGroup, onHover,
 
   // Compute selection outline color (thin, no heavy border when not selected)
   const shadowVal = isSelected
-    ? 'var(--shadow-card-hover)'
+    ? 'var(--aura-selected)'
     : multiSelected
-      ? '0 0 0 1px var(--semantic-warning)'
+      ? '0 0 0 1px var(--semantic-warning), var(--aura-glow-weak)'
       : hovered
         ? 'var(--shadow-card)'
         : 'none'

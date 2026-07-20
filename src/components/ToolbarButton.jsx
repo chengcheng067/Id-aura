@@ -70,6 +70,12 @@ export default function ToolbarButton({
       ? '1px solid var(--border-strong)'
       : '1px solid transparent'
 
+  const btnGlow = active
+    ? 'inset 0 0 16px rgba(110,168,254,0.12), 0 0 10px rgba(110,168,254,0.18)'
+    : hovered && danger
+      ? '0 0 10px rgba(240,101,72,0.15)'
+      : 'none'
+
   return (
     <div style={{ position: 'relative', display: 'flex' }}>
       <button
@@ -92,6 +98,7 @@ export default function ToolbarButton({
           justifyContent: 'center',
           padding: 0,
           opacity: disabled ? 0.4 : 1,
+          boxShadow: btnGlow,
           transition: 'all 150ms var(--liquid-ease)',
           transform: pressed ? 'scale(0.97)' : 'scale(1)',
           flexShrink: 0,

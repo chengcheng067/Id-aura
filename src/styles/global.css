@@ -100,6 +100,14 @@
   --shadow-brand: 0 8px 32px rgba(80, 60, 160, 0.18);
   --shadow-glass: 0 4px 24px rgba(0, 0, 0, 0.4);
 
+  /* Aura glow — direction-B signature (design spec v3.0) */
+  --aura-glow: 0 0 20px rgba(124, 90, 250, 0.28);
+  --aura-selected: 0 0 26px rgba(124, 90, 250, 0.5);
+  --aura-glow-weak: 0 0 14px rgba(124, 90, 250, 0.16);
+  /* Iridescent border gradient (mask 1px technique) — boosted alpha so the
+     rainbow edge reads clearly on the near-black canvas (spec v3.1) */
+  --iridescent-edge: linear-gradient(135deg, rgba(110,168,254,0.85) 0%, rgba(167,139,250,0.70) 50%, rgba(240,171,252,0.55) 100%);
+
   --liquid-ease: cubic-bezier(0.4, 0, 0.2, 1.3);
   --liquid-ease-out: cubic-bezier(0.2, 0.8, 0.4, 1.0);
 
@@ -107,6 +115,11 @@
   --aura-purple: radial-gradient(ellipse 500px 350px at 80% 40%, rgba(167,139,250,0.08), transparent);
   --aura-cyan: radial-gradient(ellipse 300px 200px at 60% 80%, rgba(103,232,249,0.05), transparent);
   --pulse-ring: 0 0 0 0 rgba(110,168,254,0.4);
+
+  /* Hover tints (spec v3.0) — unified instead of scattered rgba() */
+  --hover-subtle: rgba(255, 255, 255, 0.06);
+  --hover-faint: rgba(255, 255, 255, 0.04);
+  --hover-danger: rgba(240, 101, 72, 0.12);
 
   /* ===== Old Variable Aliases (backward compatible) ===== */
   --bg: var(--surface-base);
@@ -126,23 +139,23 @@
   --radius: var(--radius-md);
   --radius-sm: var(--radius-xs);
 
-  /* ===== Soft Card Tokens (v2.8) ===== */
+  /* ===== Soft Card Tokens (v2.8) — collapsed into Liquid Glass authority (spec v3.0) ===== */
   --surface-card: #1e1e24;
   --surface-card-hover: #23232a;
   --surface-card-active: #2a2a35;
 
-  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.2);
-  --shadow-card-hover: 0 8px 32px rgba(0, 0, 0, 0.25);
-  --shadow-panel: 0 8px 32px rgba(0, 0, 0, 0.25);
+  --shadow-card: var(--shadow-glass);
+  --shadow-card-hover: 0 8px 32px rgba(0, 0, 0, 0.3);
+  --shadow-panel: var(--shadow-glass);
 
-  --radius-panel: 16px;
-  --radius-card: 12px;
-  --radius-pill: 9999px;
+  --radius-panel: var(--radius-lg);
+  --radius-card: var(--radius-md);
+  --radius-pill: var(--radius-full);
 
-  --border-gradient: linear-gradient(135deg, #6b8cff, #a855f7);
+  --border-gradient: var(--iridescent-edge);
 
-  --ease-out-smooth: cubic-bezier(0.2, 0.8, 0.4, 1.0);
-  --ease-out-snap: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-smooth: var(--liquid-ease-out);
+  --ease-out-snap: var(--liquid-ease-out);
 
   /* 间距（已有 token 基础上统一使用） */
   --gap-panel: 12px;
@@ -182,30 +195,50 @@ body {
   background: rgba(255, 255, 255, 0.22);
 }
 
-/* ===== Glass CSS Classes ===== */
+/* ===== Glass CSS Classes =====
+   Frosted glass on a near-black canvas reads via TOP HIGHLIGHT + INNER GLOW,
+   not via the blur itself (blurring black stays black). Every glass class
+   therefore carries an inset top line + soft inner glow so the pane feels
+   like real glass, never just an outline. (spec v3.1) */
 .glass-strong {
   background: var(--glass-bg-strong);
   backdrop-filter: var(--glass-blur-heavy);
   -webkit-backdrop-filter: var(--glass-blur-heavy);
-  border: 1px solid rgba(255,255,255,0.08);
-  box-shadow: var(--shadow-glass), var(--elevation-3, 0 8px 24px rgba(0,0,0,0.6));
+  border: 1px solid rgba(255,255,255,0.10);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.10),
+    inset 0 0 40px rgba(110,168,254,0.05),
+    var(--aura-glow),
+    var(--shadow-glass), var(--elevation-3, 0 8px 24px rgba(0,0,0,0.6));
 }
 
 .glass-medium {
   background: var(--glass-bg-medium);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid rgba(255,255,255,0.06);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.08),
+    inset 0 0 30px rgba(110,168,254,0.04),
+    var(--aura-glow-weak),
+    0 4px 16px rgba(0,0,0,0.35);
 }
 
 .glass-light {
   background: var(--glass-bg-light);
   backdrop-filter: var(--glass-blur-light);
   -webkit-backdrop-filter: var(--glass-blur-light);
-  border: 1px solid rgba(255,255,255,0.04);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  border: 1px solid rgba(255,255,255,0.06);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.06),
+    var(--aura-glow-weak),
+    0 2px 8px rgba(0,0,0,0.25);
 }
+
+/* ===== Aura Glow Modifiers (spec v3.0) ===== */
+.glow-aura { box-shadow: var(--aura-glow), var(--shadow-glass); }
+.glow-aura-weak { box-shadow: var(--aura-glow-weak), var(--shadow-glass); }
+.glow-aura-selected { box-shadow: var(--aura-selected); }
 
 /* ===== Iridescent Border Utilities ===== */
 
@@ -220,7 +253,7 @@ body {
   inset: 0;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(135deg, rgba(110,168,254,0.35) 0%, rgba(167,139,250,0.35) 50%, rgba(103,232,249,0.20) 100%);
+  background: var(--iridescent-edge);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);

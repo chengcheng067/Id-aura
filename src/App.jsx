@@ -6,9 +6,7 @@ import useStore from './store/useStore'
 import Canvas from './components/Canvas'
 import Toolbar from './components/Toolbar'
 import SidePanel from './components/SidePanel'
-import AiPanel from './components/AiPanel'
 import FloatingAiButton from './components/FloatingAiButton'
-import ResizeHandle from './components/ResizeHandle'
 import SettingsModal from './components/SettingsModal'
 import WelcomePage from './components/WelcomePage'
 import CloseDialog from './components/CloseDialog'
@@ -38,8 +36,6 @@ function isInputFocused() {
 export default function App() {
   // ─── Store reads (existing) ───────────────────────────────
   const showSidePanel = useStore((s) => s.showSidePanel)
-  const isAiPanelOpen = useStore((s) => s.isAiPanelOpen)
-  const aiPanelWidth = useStore((s) => s.aiPanelWidth)
   const drawMode = useStore((s) => s.drawMode)
   const setDrawMode = useStore((s) => s.setDrawMode)
   const selectedIds = useStore((s) => s.selectedIds)
@@ -78,7 +74,7 @@ export default function App() {
   // Floating panel layout refs / state
   const toolbarWrapRef = useRef(null)
   const sidePanelWrapRef = useRef(null)
-  const [sidePanelTop, setSidePanelTop] = useState(12)
+  const [sidePanelTop, setSidePanelTop] = useState(72)
   const [sidePanelWidth, setSidePanelWidth] = useState(300)
   const [toolbarWidth, setToolbarWidth] = useState(null)
 
@@ -161,7 +157,10 @@ export default function App() {
     return () => clearInterval(timer)
   }, [autoSaveInterval, autoSave])
 
-  // ─── Auto layout avoidance: SidePanel dodges wrapped Toolbar ──
+  // ─── 布局铁律：SidePanel 顶部永远低于工具栏带（永久规避重叠）───
+  // 面板整体下移：顶边 = 工具栏实测底边 + 12px（单行时约 72px），
+  // 工具栏换行变高时随之进一步下移；底边锚定 bottom:12，高度自然收窄。
+  // 无论窗口宽度如何，面板与工具栏在结构上不可能重叠。
   useEffect(() => {
     if (toolbarCollapsed) {
       setSidePanelTop(12)
@@ -172,16 +171,8 @@ export default function App() {
 
     const recalc = () => {
       const toolbarRect = toolbarEl.getBoundingClientRect()
-      const sidePanelLeft = 12
-      const sidePanelRight = sidePanelLeft + sidePanelWidth
-      const toolbarLeft = toolbarRect.left
-      const toolbarRight = toolbarRect.right
-      const horizontalOverlap = toolbarLeft < sidePanelRight && toolbarRight > sidePanelLeft
-      if (horizontalOverlap) {
-        setSidePanelTop(Math.max(12, toolbarRect.bottom + 12))
-      } else {
-        setSidePanelTop(12)
-      }
+      // 72 = 12(顶部留白) + 48(工具栏) + 12(间隙)；换行工具栏更高，取实测底边
+      setSidePanelTop(Math.max(72, toolbarRect.bottom + 12))
     }
 
     recalc()
@@ -192,7 +183,7 @@ export default function App() {
       ro.disconnect()
       window.removeEventListener('resize', recalc)
     }
-  }, [toolbarCollapsed, sidePanelWidth])
+  }, [toolbarCollapsed])
 
   // ─── Collapsible toolbar → draggable logo ball ──────────────
   // Click the ball to re-expand; drag it to reposition freely.
@@ -341,6 +332,25 @@ export default function App() {
         return
       }
 
+      // Tab — toggle spec library panel (skip when an input is focused)
+      if (e.key === 'Tab' && !e.ctrlKey && !e.shiftKey && !isInputFocused()) {
+        e.preventDefault()
+        useStore.getState().togglePanel()
+        return
+      }
+
+      // N — add a note card (skip in draw mode / when input focused)
+      if ((e.key === 'n' || e.key === 'N') && !e.ctrlKey && !e.metaKey && !drawMode && !isInputFocused()) {
+        addCard('note')
+        return
+      }
+
+      // L — add a text label card (skip in draw mode / when input focused)
+      if ((e.key === 'l' || e.key === 'L') && !e.ctrlKey && !e.metaKey && !drawMode && !isInputFocused()) {
+        addCard('label')
+        return
+      }
+
       // Delete / Backspace
       if ((e.key === 'Delete' || e.key === 'Backspace') && !drawMode && selectedIds.length > 0) {
         e.preventDefault()
@@ -407,7 +417,7 @@ export default function App() {
   }
 
   // ─── Main interface ───────────────────────────────────────
-  // Canvas fills the entire window; Toolbar/SidePanel/AiPanel float as tiles.
+  // Canvas fills the entire window; Toolbar/SidePanel/AI bubble float as tiles.
   return (
     <div
       className="transition-fast"
@@ -474,15 +484,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Floating AI Panel */}
-      {isAiPanelOpen && (
-        <div style={{ position: 'absolute', top: 12, right: 12, bottom: 12, width: aiPanelWidth, zIndex: 100 }}>
-          <AiPanel />
-          <ResizeHandle />
-        </div>
-      )}
-
-      {/* Floating AI Button */}
+      {/* Floating AI Button (唯一 AI 入口 — 发光气泡 + 浮层聊天窗) */}
       <FloatingAiButton />
 
       {/* Settings modal */}

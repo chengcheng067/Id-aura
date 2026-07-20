@@ -481,8 +481,6 @@ function AboutTab() {
           borderRadius: 'var(--radius-panel)',
           padding: '12px 16px',
           width: '100%',
-          background: 'var(--surface-card)',
-          boxShadow: 'var(--shadow-card)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
@@ -529,7 +527,7 @@ function AboutTab() {
 
       {/* Check error feedback */}
       {lastCheckError && (
-        <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-danger, #ef4444)', margin: 0 }}>
+        <p style={{ fontSize: 'var(--text-xs)', color: 'var(--semantic-danger)', margin: 0 }}>
           ⚠ 检查失败：{lastCheckError}
         </p>
       )}
@@ -542,8 +540,6 @@ function AboutTab() {
           padding: '12px 16px',
           width: '100%',
           textAlign: 'center',
-          background: 'var(--surface-card)',
-          boxShadow: 'var(--shadow-card)',
         }}
       >
         <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: 4 }}>
@@ -653,12 +649,12 @@ function SpecTab() {
         style={{ borderRadius: 'var(--radius-card)', padding: '10px 12px', background: 'var(--surface-card)' }}
       >
         <div style={labelS}>当前生效规范</div>
-        <div style={{ fontSize: 'var(--text-sm)', color: specError ? 'var(--color-danger, #ef4444)' : 'var(--text-primary)' }}>
+        <div style={{ fontSize: 'var(--text-sm)', color: specError ? 'var(--semantic-danger)' : 'var(--text-primary)' }}>
           版本 v{specStatus.version} · 来源：{specStatus.source}
           {specStatus.categories > 0 && ` · ${specStatus.categories} 个品类`}
         </div>
         {specError && (
-          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-danger, #ef4444)', marginTop: 4 }}>
+          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--semantic-danger)', marginTop: 4 }}>
             ⚠ {specError.message}
           </div>
         )}
@@ -671,7 +667,7 @@ function SpecTab() {
           style={{
             borderRadius: 'var(--radius-card)', padding: '10px 12px',
             background: lastResult.success ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
-            borderLeft: `3px solid ${lastResult.success ? 'var(--color-success, #22c55e)' : 'var(--color-danger, #ef4444)'}`,
+            borderLeft: `3px solid ${lastResult.success ? 'var(--semantic-success)' : 'var(--semantic-danger)'}`,
           }}
         >
           <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-primary)', fontWeight: 500 }}>

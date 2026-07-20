@@ -58,8 +58,6 @@ export default function ZoomControls() {
         zIndex: 50,
         padding: 4,
         borderRadius: 'var(--radius-card)',
-        background: 'var(--surface-card)',
-        boxShadow: 'var(--shadow-card)',
       }}
     >
       <ZoomBtn onClick={() => zoomCentered(1 / 1.2)} title="缩小">
@@ -114,7 +112,7 @@ function ZoomBtn({ children, onClick, title }) {
         transition: 'all 150ms ease-out',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+        e.currentTarget.style.background = 'var(--hover-subtle)'
         e.currentTarget.style.color = 'var(--text-primary)'
         e.currentTarget.style.transform = 'scale(1.1)'
       }}

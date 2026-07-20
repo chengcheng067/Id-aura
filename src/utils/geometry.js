@@ -168,27 +168,19 @@ export function arrangeCards(imageCards, mode) {
     rows.push(sorted.slice(i, i + cols))
   }
 
-  // Compute column widths and row heights based on actual cards
-  const colWidths = new Array(cols).fill(0)
-  const rowHeights = rows.map((row) =>
-    Math.max(...row.map(c => (typeof c.height === 'number' ? c.height : 200)))
-  )
-
-  rows.forEach((row) => {
-    row.forEach((c, colIdx) => {
-      colWidths[colIdx] = Math.max(colWidths[colIdx], c.width || 280)
-    })
-  })
-
+  // Flow layout: each row starts from originX, cards use their own width
+  // (no global column-width alignment that leaves gaps when rows have
+  // different card sizes — spec v3.2 fix for "bottom row not left-packed")
   const updates = {}
   let y = originY
-  rows.forEach((row, rowIdx) => {
+  rows.forEach((row) => {
     let x = originX
-    row.forEach((c, colIdx) => {
+    const rowH = Math.max(...row.map(c => (typeof c.height === 'number' ? c.height : 200)))
+    row.forEach((c) => {
       updates[c.id] = { x, y }
-      x += colWidths[colIdx] + gap
+      x += (c.width || 280) + gap
     })
-    y += rowHeights[rowIdx] + gap
+    y += rowH + gap
   })
 
   return updates

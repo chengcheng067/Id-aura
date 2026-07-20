@@ -296,6 +296,7 @@ export default function Toolbar({ fileLoadRef, fileInputRef, onSettingsClick, on
 
   return (
     <div
+      className="glass-strong iridescent-border"
       style={{
         alignSelf: 'center',
         minHeight: 48,
@@ -309,11 +310,19 @@ export default function Toolbar({ fileLoadRef, fileInputRef, onSettingsClick, on
         maxWidth: '100%',
         overflow: 'visible',
         zIndex: 100,
-        background: 'var(--surface-card)',
         borderRadius: 'var(--radius-panel)',
-        boxShadow: 'var(--shadow-panel)',
+        position: 'relative',
       }}
     >
+      {/* Top refraction highlight line (glass illusion on dark canvas) */}
+      <div
+        aria-hidden
+        style={{
+          position: 'absolute', top: 0, left: '8%', right: '8%', height: 1,
+          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.16) 30%, rgba(255,255,255,0.20) 50%, rgba(255,255,255,0.16) 70%, transparent)',
+          borderRadius: '1px', pointerEvents: 'none', zIndex: 2,
+        }}
+      />
       {/* Collapse button */}
       <ToolbarButton
         icon={Minimize2}

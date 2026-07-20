@@ -109,15 +109,15 @@ export default function CloseDialog({ onCancel, onDiscard, onSave }) {
             取消
           </button>
 
-          {/* Discard */}
+          {/* Discard — danger: solid red for strong warning */}
           <button
             onClick={onDiscard}
             style={{
               padding: '7px 16px',
               borderRadius: 'var(--radius-sm)',
-              border: '1px solid var(--semantic-error)',
-              background: 'transparent',
-              color: 'var(--semantic-error)',
+              border: '1px solid var(--semantic-danger)',
+              background: 'var(--semantic-danger)',
+              color: '#fff',
               cursor: 'pointer',
               fontSize: 'var(--text-sm)',
               fontWeight: 500,
@@ -125,10 +125,10 @@ export default function CloseDialog({ onCancel, onDiscard, onSave }) {
               fontFamily: 'var(--font-family)',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(255, 77, 77, 0.1)'
+              e.currentTarget.style.opacity = '0.85'
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent'
+              e.currentTarget.style.opacity = '1'
             }}
           >
             不保存

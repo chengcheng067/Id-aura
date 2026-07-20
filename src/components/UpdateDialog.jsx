@@ -53,8 +53,6 @@ export default function UpdateDialog({ open, onClose }) {
           width: 'min(440px, calc(100vw - 32px))',
           borderRadius: 'var(--radius-panel)',
           padding: 20,
-          background: 'var(--surface-card)',
-          boxShadow: 'var(--shadow-panel)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>

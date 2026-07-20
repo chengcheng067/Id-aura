@@ -76,6 +76,7 @@ export default function SidePanel() {
 
   return (
     <div
+      className="glass-medium iridescent-border glow-aura-weak"
       style={{
         width: '100%',
         display: 'flex',
@@ -83,13 +84,43 @@ export default function SidePanel() {
         height: '100%',
         flexShrink: 0,
         overflow: 'hidden',
-        background: 'var(--surface-card)',
         borderRadius: 'var(--radius-panel)',
-        boxShadow: 'var(--shadow-panel)',
         position: 'relative',
         isolation: 'isolate',
       }}
     >
+      {/* Glass optical layers — top refraction line + inner gradient + micro-noise.
+          These create the frosted glass illusion on a pure-black canvas where
+          backdrop-filter blur has nothing visible to work on. (spec v3.1) */}
+      <div
+        aria-hidden
+        style={{
+          position: 'absolute',
+          inset: 0,
+          borderRadius: 'inherit',
+          background:
+            'linear-gradient(180deg, rgba(255,255,255,0.04) 0%, transparent 30%),' +
+            'radial-gradient(ellipse 90% 40% at 30% 0%, rgba(110,168,254,0.08), transparent 60%),' +
+            'radial-gradient(ellipse 70% 40% at 80% 100%, rgba(167,139,250,0.06), transparent 60%)',
+          pointerEvents: 'none',
+          zIndex: 0,
+        }}
+      />
+      {/* Top highlight refraction line */}
+      <div
+        aria-hidden
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: '10%',
+          right: '10%',
+          height: 1,
+          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.18) 30%, rgba(255,255,255,0.22) 50%, rgba(255,255,255,0.18) 70%, transparent)',
+          borderRadius: '1px',
+          pointerEvents: 'none',
+          zIndex: 2,
+        }}
+      />
       {/* Header */}
       <div
         style={{
@@ -111,7 +142,7 @@ export default function SidePanel() {
             <span
               title={`加载失败：${specError.message}\n点击右侧 ↻ 重试`}
               style={{
-                color: 'var(--color-danger, #ef4444)',
+                color: 'var(--semantic-danger)',
                 cursor: 'default',
                 display: 'flex',
                 alignItems: 'center',
@@ -125,12 +156,12 @@ export default function SidePanel() {
             title={`规范数据版本 ${specStatus.version} · 来源：${specStatus.source}${specStatus.categories ? ` · ${specStatus.categories} 个品类` : ''}${specError ? `\n\n⚠ ${specError.message}` : ''}`}
             style={{
               fontSize: 'var(--text-xs)',
-              color: specError ? 'var(--color-danger, #ef4444)' : 'var(--text-tertiary)',
+              color: specError ? 'var(--semantic-danger)' : 'var(--text-tertiary)',
               fontWeight: 400,
               cursor: 'default',
               padding: '1px 6px',
               borderRadius: 'var(--radius-xs)',
-              background: specError ? 'rgba(239,68,68,0.1)' : 'var(--surface-overlay)',
+              background: specError ? 'rgba(240,101,72,0.12)' : 'var(--surface-overlay)',
               whiteSpace: 'nowrap',
             }}
           >
@@ -296,26 +327,28 @@ export default function SidePanel() {
                 {/* Category cards — animated collapse/expand */}
                 <div
                   style={{
-                    maxHeight: isCollapsed ? 0 : 1200,
+                    maxHeight: isCollapsed ? 0 : 2000,
                     overflow: 'hidden',
                     opacity: isCollapsed ? 0 : 1,
                     transition: 'max-height 320ms var(--ease-out-smooth), opacity 220ms ease-out',
                   }}
                 >
-                  {cats.map((cat) => (
-                    <CategoryCard
-                      key={cat.id}
-                      id={cat.id}
-                      name={cat.name}
-                      icon={cat.icon}
-                      itemCount={cat.itemCount}
-                      isSelected={false}
-                      onClick={() => {
-                        setSelectedCategory(cat.id)
-                        setSearchQuery('')
-                      }}
-                    />
-                  ))}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                    {cats.map((cat) => (
+                      <CategoryCard
+                        key={cat.id}
+                        id={cat.id}
+                        name={cat.name}
+                        icon={cat.icon}
+                        itemCount={cat.itemCount}
+                        isSelected={false}
+                        onClick={() => {
+                          setSelectedCategory(cat.id)
+                          setSearchQuery('')
+                        }}
+                      />
+                    ))}
+                  </div>
                 </div>
               </div>
             )

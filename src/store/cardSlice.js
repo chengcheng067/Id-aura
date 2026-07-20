@@ -241,17 +241,18 @@ export const createCardSlice = (set, get) => ({
    */
   arrangeCards: (mode = 'optimal', ids = null) => {
     const { cards } = get()
-    let imageCards = cards.filter(c => c.type === 'image')
+    // All card types can be arranged (image, spec, note, label, etc.)
+    let targetCards = cards.filter(c => !c.groupId) // skip grouped children
 
     if (ids) {
       const idSet = new Set(ids)
-      imageCards = imageCards.filter(c => idSet.has(c.id))
+      targetCards = targetCards.filter(c => idSet.has(c.id))
     }
 
-    if (imageCards.length <= 1) return
+    if (targetCards.length <= 1) return
     get()._pushHistory()
 
-    const updates = doArrange(imageCards, mode)
+    const updates = doArrange(targetCards, mode)
 
     set(state => ({
       cards: state.cards.map(c =>

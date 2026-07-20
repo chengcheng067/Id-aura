@@ -1,5 +1,6 @@
 /**
- * CategoryCard — a clickable card for a specification category in the SidePanel.
+ * CategoryCard — magnetic tile for a specification category in the SidePanel.
+ * Layout: icon centered on top, name below, spec count as a subtle badge.
  *
  * Props:
  *   id: string          — category id
@@ -16,60 +17,74 @@ export default function CategoryCard({ id, name, icon, itemCount, isSelected, on
     <div
       onClick={onClick}
       style={{
-        padding: '10px 12px',
+        padding: '14px 8px 10px',
         borderRadius: 'var(--radius-card)',
-        background: isSelected ? 'var(--accent-muted)' : 'var(--surface-card)',
+        background: isSelected
+          ? 'var(--accent-muted)'
+          : 'rgba(255,255,255,0.04)',
         border: isSelected
           ? '1px solid var(--border-accent)'
-          : '1px solid transparent',
-        borderLeft: `3px solid ${isSelected ? 'var(--accent-default)' : accentColor}`,
+          : '1px solid rgba(255,255,255,0.06)',
+        borderTop: isSelected
+          ? `2px solid var(--accent-default)`
+          : `2px solid ${accentColor}`,
         cursor: 'pointer',
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
-        gap: 10,
-        marginBottom: 6,
+        gap: 6,
         transition: 'all 200ms ease-out',
+        position: 'relative',
+        overflow: 'hidden',
       }}
       onMouseEnter={(e) => {
         if (!isSelected) {
-          e.currentTarget.style.background = 'var(--surface-card-hover)'
-          e.currentTarget.style.borderColor = 'var(--border-default)'
+          e.currentTarget.style.background = 'rgba(255,255,255,0.07)'
+          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'
           e.currentTarget.style.transform = 'translateY(-2px)'
-          e.currentTarget.style.boxShadow = 'var(--shadow-card)'
+          e.currentTarget.style.boxShadow = 'var(--aura-glow-weak), 0 4px 12px rgba(0,0,0,0.3)'
         }
       }}
       onMouseLeave={(e) => {
         if (!isSelected) {
-          e.currentTarget.style.background = 'var(--surface-card)'
-          e.currentTarget.style.borderColor = 'transparent'
+          e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
+          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'
           e.currentTarget.style.transform = 'translateY(0)'
           e.currentTarget.style.boxShadow = 'none'
         }
       }}
     >
-      <span style={{ fontSize: 18, flexShrink: 0 }}>{icon}</span>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div
-          style={{
-            fontSize: 'var(--text-sm)',
-            fontWeight: 500,
-            color: 'var(--text-primary)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {name}
-        </div>
-        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', marginTop: 2 }}>
-          {itemCount} 项规范
-        </div>
+      {/* Icon */}
+      <span style={{ fontSize: 22, lineHeight: 1, flexShrink: 0 }}>{icon}</span>
+      {/* Name */}
+      <div
+        style={{
+          fontSize: 'var(--text-xs)',
+          fontWeight: 500,
+          color: isSelected ? 'var(--accent-default)' : 'var(--text-primary)',
+          textAlign: 'center',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          maxWidth: '100%',
+          lineHeight: 1.3,
+        }}
+      >
+        {name}
       </div>
-      {isSelected && (
-        <span style={{ color: 'var(--accent-default)', fontSize: 12, fontWeight: 600 }}>
-          ›
-        </span>
-      )}
+      {/* Count badge */}
+      <div
+        style={{
+          fontSize: 10,
+          color: 'var(--text-tertiary)',
+          lineHeight: 1,
+          background: 'rgba(255,255,255,0.05)',
+          padding: '1px 6px',
+          borderRadius: 'var(--radius-full)',
+        }}
+      >
+        {itemCount}
+      </div>
     </div>
   )
 }

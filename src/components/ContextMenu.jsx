@@ -82,6 +82,7 @@ export default function ContextMenu({ menu, onClose, onSettingsClick, onMiniWind
   const selIds = menu.selectedIds || []
   const hasMultiSelect = menu.selectedCount > 1
   const imageCount = cards.filter((c) => c.type === 'image').length
+  const arrangeableCount = cards.filter((c) => !c.groupId).length
 
   // Position: clamp to viewport
   const x = Math.min(menu.x, window.innerWidth - 280)
@@ -274,11 +275,11 @@ export default function ContextMenu({ menu, onClose, onSettingsClick, onMiniWind
             </>
           )}
 
-          {/* Arrange selected */}
-          {cards.some((c) => selIds.includes(c.id) && c.type === 'image') && (
+          {/* Arrange selected — all card types */}
+          {selIds.length >= 2 && (
             <>
               <Divider />
-              <SectionTitle>排列选中图片</SectionTitle>
+              <SectionTitle>排列选中卡片</SectionTitle>
               <MenuItem icon={LayoutGrid} label="自动排列 − 最优" onClick={() => doAndClose(() => arrangeCards('optimal', selIds))} />
               <MenuItem icon={LayoutGrid} label="按名称" onClick={() => doAndClose(() => arrangeCards('name', selIds))} />
               <MenuItem icon={LayoutGrid} label="按顺序" onClick={() => doAndClose(() => arrangeCards('order', selIds))} />
@@ -469,10 +470,10 @@ export default function ContextMenu({ menu, onClose, onSettingsClick, onMiniWind
           />
           <MenuItem icon={Tag} label="添加文字标签" onClick={() => doAndClose(() => addCard('label'))} />
           <MenuItem icon={StickyNote} label="添加备注" onClick={() => doAndClose(() => addCard('note'))} />
-          {imageCount > 0 && (
+          {arrangeableCount > 0 && (
             <>
               <Divider />
-              <SectionTitle>全部图片 — 排列</SectionTitle>
+              <SectionTitle>全部卡片 — 排列</SectionTitle>
               <MenuItem icon={LayoutGrid} label="自动排列 − 最优" onClick={() => doAndClose(() => arrangeCards('optimal'))} />
               <MenuItem icon={LayoutGrid} label="按名称排列" onClick={() => doAndClose(() => arrangeCards('name'))} />
               <MenuItem icon={LayoutGrid} label="按路径排列" onClick={() => doAndClose(() => arrangeCards('path'))} />
@@ -582,8 +583,8 @@ function MenuItem({ icon: Icon, label, shortcut, onClick, danger, disabled }) {
         border: 'none',
         background: hovered && !disabled
           ? danger
-            ? 'rgba(240, 101, 72, 0.12)'
-            : 'rgba(255, 255, 255, 0.06)'
+            ? 'var(--hover-danger)'
+            : 'var(--hover-subtle)'
           : 'transparent',
         width: '100%',
         textAlign: 'left',
@@ -607,7 +608,7 @@ function MenuItem({ icon: Icon, label, shortcut, onClick, danger, disabled }) {
           style={{
             fontSize: 10,
             color: 'var(--text-tertiary)',
-            background: 'rgba(255,255,255,0.06)',
+            background: 'var(--hover-subtle)',
             padding: '1px 5px',
             borderRadius: 3,
           }}
@@ -630,7 +631,7 @@ function AlignBtn({ icon: Icon, onClick, title }) {
       style={{
         padding: '5px 0',
         border: 'none',
-        background: hovered ? 'rgba(255, 255, 255, 0.06)' : 'transparent',
+        background: hovered ? 'var(--hover-subtle)' : 'transparent',
         color: hovered ? 'var(--text-primary)' : 'var(--text-secondary)',
         cursor: 'pointer',
         borderRadius: 'var(--radius-xs)',

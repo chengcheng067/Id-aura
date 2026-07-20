@@ -40,9 +40,6 @@ function inferProvider(endpoint) {
  *   3. 再次点击或点击X/外部区域关闭
  */
 export default function FloatingAiAssistant() {
-  const toggleAiPanel = useStore((s) => s.toggleAiPanel)
-  const isAiPanelOpen = useStore((s) => s.isAiPanelOpen)
-
   const [isChatOpen, setIsChatOpen] = useState(false)
   const [isTemplateOpen, setIsTemplateOpen] = useState(false)
   const [message, setMessage] = useState('')
@@ -271,7 +268,7 @@ export default function FloatingAiAssistant() {
           height: 56,
           borderRadius: '50%',
           border: '2px solid rgba(255,255,255,0.2)',
-          background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(168,85,247,0.85))',
+          background: 'var(--accent-gradient)',
           color: '#fff',
           cursor: 'pointer',
           display: 'flex',
@@ -557,15 +554,15 @@ export default function FloatingAiAssistant() {
                     title="发送"
                     style={{
                       width: 38, height: 38, borderRadius: 11, border: 'none',
-                      background: 'linear-gradient(135deg, #dc2626, #ef4444)',
+                      background: 'var(--accent-gradient)',
                       color: '#fff', cursor: (!message.trim() || !isConfigured || !isTested) ? 'default' : 'pointer',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
-                      boxShadow: message.trim() ? '0 4px 14px rgba(220,38,38,0.35)' : 'none',
+                      boxShadow: message.trim() ? '0 4px 14px rgba(124,58,237,0.4)' : 'none',
                       opacity: (!message.trim() || !isConfigured || !isTested) ? 0.4 : 1,
                       transition: 'all 200ms ease-out',
                     }}
-                    onMouseEnter={(e) => { if (message.trim()) { e.currentTarget.style.transform = 'scale(1.08) translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(220,38,38,0.45)' } }}
-                    onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1) translateY(0)'; e.currentTarget.style.boxShadow = message.trim() ? '0 4px 14px rgba(220,38,38,0.35)' : 'none' }}
+                    onMouseEnter={(e) => { if (message.trim()) { e.currentTarget.style.transform = 'scale(1.08) translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(124,58,237,0.5)' } }}
+                    onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1) translateY(0)'; e.currentTarget.style.boxShadow = message.trim() ? '0 4px 14px rgba(124,58,237,0.4)' : 'none' }}
                   >
                     <Send size={17} strokeWidth={2} style={{ transform: 'translateX(1px) translateY(1px) rotate(-5deg)' }} />
                   </button>
